@@ -1,0 +1,321 @@
+app:
+  description: 'Rewrites a user''s rough image request into a high-quality prompt
+    optimized for Google Nano Banana 2 (Gemini 3.1 Flash Image) and Nano Banana Pro
+    (Gemini 3 Pro Image). Input: raw_prompt. Output: JSON with optimized_prompt,
+    aspect_ratio, resolution, model_suggestion, style_tag, reasoning_short.'
+  icon: "\U0001F34C"
+  icon_background: '#FFF4CC'
+  mode: workflow
+  name: Prompt Optimizer - Nano Banana 2
+  use_icon_as_answer_icon: false
+
+kind: app
+version: 0.1.5
+
+workflow:
+  environment_variables: []
+  conversation_variables: []
+
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+
+  graph:
+    edges:
+      - id: start-to-llm
+        source: start-node
+        sourceHandle: source
+        target: llm-node
+        targetHandle: target
+        type: custom
+      - id: llm-to-code
+        source: llm-node
+        sourceHandle: source
+        target: code-node
+        targetHandle: target
+        type: custom
+      - id: code-to-end
+        source: code-node
+        sourceHandle: source
+        target: end-node
+        targetHandle: target
+        type: custom
+
+    nodes:
+      - id: start-node
+        type: custom
+        position: { x: 80, y: 200 }
+        data:
+          type: start
+          title: Start
+          desc: 'Inputs from frontend'
+          variables:
+            - variable: raw_prompt
+              label: Raw user prompt
+              type: paragraph
+              required: true
+              max_length: 2000
+            - variable: style_preset
+              label: Optional style preset
+              type: select
+              required: false
+              options:
+                - auto
+                - photo
+                - illustration
+                - 3d
+                - design
+                - anime
+                - infographic
+              default: auto
+            - variable: aspect_ratio_hint
+              label: Optional aspect ratio hint
+              type: select
+              required: false
+              options:
+                - auto
+                - '1:1'
+                - '2:3'
+                - '3:2'
+                - '3:4'
+                - '4:3'
+                - '4:5'
+                - '5:4'
+                - '9:16'
+                - '16:9'
+                - '9:21'
+                - '21:9'
+                - '2:1'
+                - '1:2'
+                - '5:7'
+              default: auto
+            - variable: quality_tier
+              label: Quality tier (draft/standard/hero)
+              type: select
+              required: false
+              options:
+                - auto
+                - draft
+                - standard
+                - hero
+              default: auto
+
+      - id: llm-node
+        type: custom
+        position: { x: 420, y: 200 }
+        data:
+          type: llm
+          title: GPT-5 Optimizer
+          desc: 'Rewrites raw prompt into JSON tuned for Nano Banana 2 / Pro'
+          model:
+            provider: openai
+            name: gpt-5
+            mode: chat
+            completion_params:
+              temperature: 0.4
+              top_p: 1
+              max_tokens: 1400
+              response_format: { type: json_object }
+          prompt_template:
+            - role: system
+              text: |
+                You are ImagePromptOptimizer-NB2, an expert image-prompt engineer.
+                Your single job: rewrite a user's rough request into a high-quality
+                prompt optimized for Google Nano Banana 2 (gemini-3.1-flash-image)
+                and Nano Banana Pro (gemini-3-pro-image).
+
+                What you know about Nano Banana 2 / Pro:
+                - Built on the Gemini 3 reasoning backbone. It plans composition,
+                  physics and spatial relations before rendering.
+                - Prefers natural-language paragraphs, not comma-separated tags.
+                - Excellent at text rendering in many languages. Wrap exact
+                  on-image text in straight double quotes and state font style,
+                  weight, color, size and placement.
+                - Supports 14 aspect ratios: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4,
+                  9:16, 16:9, 9:21, 21:9, 2:1, 1:2, 5:7.
+                - Native output up to 4K. Request 4K for hero/print use.
+                - Character consistency: up to 5 characters and ~14 objects
+                  across edits. Name each character and repeat anchor traits.
+                - Editing: say what to KEEP unchanged and what to CHANGE.
+                - Negative guidance goes inside the paragraph.
+                - Use photography vocabulary: lens focal length, aperture,
+                  film stock, lighting setup, angle.
+                - Avoid real private people, minors in unsafe contexts, sexual
+                  content, self-harm, weapons manufacture, copyrighted
+                  characters, real-brand logos the user does not own.
+
+                Output contract (STRICT). Return ONLY a single JSON object with
+                keys: optimized_prompt (70-200 word natural paragraph),
+                aspect_ratio (one of the 14 above),
+                resolution (1K | 2K | 4K),
+                model_suggestion (nano-banana-2 | nano-banana-pro),
+                style_tag (photo | illustration | 3d | design | anime | infographic | mixed),
+                reasoning_short (<= 25 words).
+
+                model_suggestion rule:
+                - nano-banana-pro for hero assets, complex multi-character
+                  scenes, infographics with dense text, 4K print-grade output.
+                - nano-banana-2 for everything else (speed/cost).
+
+                Rewrite procedure:
+                1. Detect language, translate meaning to English, keep on-image
+                   text in the user's original language if they want it rendered.
+                2. Classify intent: portrait, product, scene, poster,
+                   infographic, thumbnail, logo/design, illustration,
+                   3d-figurine, edit, multi-character.
+                3. Apply 6-part mental outline (don't print): Subject,
+                   Composition, Scene, Style, Constraints, Output.
+                4. Compose ONE paragraph: subject with identity traits (named
+                   if consistency needed), action/pose/expression,
+                   environment/time/weather, camera language (lens, aperture,
+                   angle, DoF) or medium language for non-photo, lighting
+                   (source, direction, quality, color temperature, film
+                   stock if photographic), color palette and mood, on-image
+                   text in straight quotes with font/weight/color/placement,
+                   consistency anchors if editing or multi-scene, negative
+                   clauses.
+                5. Pick aspect_ratio from intent (portrait/story 9:16, banner
+                   16:9, avatar 1:1, poster 2:3, ultrawide 21:9, infographic
+                   9:21, otherwise 1:1).
+                6. Pick resolution: 1K draft/avatar, 2K default, 4K hero/print.
+                7. Honor user overrides for style_preset, aspect_ratio_hint,
+                   quality_tier if provided and not "auto".
+                8. Length 70-200 words, hard cap 220.
+                9. Safety: on unsafe intent return
+                   {"optimized_prompt":"","aspect_ratio":"1:1","resolution":"1K","model_suggestion":"nano-banana-2","style_tag":"photo","reasoning_short":"Request rejected by safety policy."}
+
+                Few-shot:
+
+                User: "一只可爱的猫"
+                Assistant: {"optimized_prompt":"A close-up portrait of a fluffy ginger kitten with large amber eyes, soft pink paw pads, and a tiny white chest patch, sitting alert on a pale linen blanket in front of a sunlit window. Shot on an 85mm lens at f/1.8, eye-level angle, shallow depth of field, rule-of-thirds composition with the kitten on the right. Warm late-afternoon side light, gentle rim light on the fur, soft falloff into a creamy bokeh background. Palette of peach, cream, and warm beige. Photographic look reminiscent of Kodak Portra 400, fine fur detail, natural catchlights in the eyes, crisp whiskers. No watermark, no text, no distorted anatomy, no extra limbs.","aspect_ratio":"1:1","resolution":"2K","model_suggestion":"nano-banana-2","style_tag":"photo","reasoning_short":"Simple single-subject portrait; 2K square fits any social feed."}
+
+                User: "618大促手机海报,写'全场五折'"
+                Assistant: {"optimized_prompt":"A vertical e-commerce hero poster for a flagship smartphone floating slightly above a glossy crimson pedestal, three-quarter front angle, centered composition with generous top space reserved for the headline. Studio product photography feel: 50mm lens at f/8 for edge-to-edge sharpness, key softbox from the upper left, subtle kicker from the right, seamless gradient backdrop from deep crimson to warm orange. Dynamic gold confetti and light streaks radiate behind the phone to imply momentum. The large headline reads \"全场五折\" in bold condensed sans-serif, pure white with a thin metallic gold outline, centered in the upper third and occupying roughly 70% of the width. A smaller subtitle reads \"618 大促 | 今日开抢\" in medium weight white just below. Festive, premium, high contrast, clean negative space around the product. No watermark, no extra phones, no distorted text, no real-brand logos.","aspect_ratio":"2:3","resolution":"4K","model_suggestion":"nano-banana-pro","style_tag":"design","reasoning_short":"Poster with prominent Chinese headline; Pro + 4K for print-grade text."}
+
+                Return ONLY the JSON object. No code fences. No prose.
+            - role: user
+              text: |
+                raw_prompt: {{#start-node.raw_prompt#}}
+                style_preset: {{#start-node.style_preset#}}
+                aspect_ratio_hint: {{#start-node.aspect_ratio_hint#}}
+                quality_tier: {{#start-node.quality_tier#}}
+
+      - id: code-node
+        type: custom
+        position: { x: 760, y: 200 }
+        data:
+          type: code
+          title: Validate & Normalize
+          desc: 'Parse JSON, enforce schema, apply hints, graceful fallback'
+          code_language: python3
+          code: |
+            import json
+
+            def main(llm_text: str, raw_prompt: str, style_preset: str, aspect_ratio_hint: str, quality_tier: str) -> dict:
+                allowed_ratios = {"1:1","2:3","3:2","3:4","4:3","4:5","5:4",
+                                  "9:16","16:9","9:21","21:9","2:1","1:2","5:7"}
+                allowed_res = {"1K","2K","4K"}
+                allowed_models = {"nano-banana-2","nano-banana-pro"}
+                allowed_styles = {"photo","illustration","3d","design","anime",
+                                  "infographic","mixed"}
+
+                fallback = {
+                    "optimized_prompt": raw_prompt.strip(),
+                    "aspect_ratio": "1:1",
+                    "resolution": "2K",
+                    "model_suggestion": "nano-banana-2",
+                    "style_tag": "photo",
+                    "reasoning_short": "Fallback: optimizer output unparseable."
+                }
+
+                try:
+                    data = json.loads(llm_text)
+                except Exception:
+                    return {"result": fallback}
+
+                out = {
+                    "optimized_prompt": str(data.get("optimized_prompt","")).strip() or fallback["optimized_prompt"],
+                    "aspect_ratio": data.get("aspect_ratio","1:1"),
+                    "resolution": data.get("resolution","2K"),
+                    "model_suggestion": data.get("model_suggestion","nano-banana-2"),
+                    "style_tag": data.get("style_tag","photo"),
+                    "reasoning_short": str(data.get("reasoning_short",""))[:200]
+                }
+
+                if out["aspect_ratio"] not in allowed_ratios:
+                    out["aspect_ratio"] = "1:1"
+                if out["resolution"] not in allowed_res:
+                    out["resolution"] = "2K"
+                if out["model_suggestion"] not in allowed_models:
+                    out["model_suggestion"] = "nano-banana-2"
+                if out["style_tag"] not in allowed_styles:
+                    out["style_tag"] = "photo"
+
+                if aspect_ratio_hint and aspect_ratio_hint != "auto" and aspect_ratio_hint in allowed_ratios:
+                    out["aspect_ratio"] = aspect_ratio_hint
+                if style_preset and style_preset != "auto" and style_preset in allowed_styles:
+                    out["style_tag"] = style_preset
+
+                if quality_tier and quality_tier != "auto":
+                    if quality_tier == "draft":
+                        out["resolution"] = "1K"
+                        out["model_suggestion"] = "nano-banana-2"
+                    elif quality_tier == "standard":
+                        out["resolution"] = "2K"
+                    elif quality_tier == "hero":
+                        out["resolution"] = "4K"
+                        out["model_suggestion"] = "nano-banana-pro"
+
+                return {"result": out}
+          inputs:
+            llm_text:
+              type: string
+              value_selector: [llm-node, text]
+            raw_prompt:
+              type: string
+              value_selector: [start-node, raw_prompt]
+            style_preset:
+              type: string
+              value_selector: [start-node, style_preset]
+            aspect_ratio_hint:
+              type: string
+              value_selector: [start-node, aspect_ratio_hint]
+            quality_tier:
+              type: string
+              value_selector: [start-node, quality_tier]
+          outputs:
+            result:
+              type: object
+
+      - id: end-node
+        type: custom
+        position: { x: 1100, y: 200 }
+        data:
+          type: end
+          title: End
+          desc: 'Structured JSON returned to the frontend'
+          outputs:
+            - variable: optimized_prompt
+              value_selector: [code-node, result, optimized_prompt]
+            - variable: aspect_ratio
+              value_selector: [code-node, result, aspect_ratio]
+            - variable: resolution
+              value_selector: [code-node, result, resolution]
+            - variable: model_suggestion
+              value_selector: [code-node, result, model_suggestion]
+            - variable: style_tag
+              value_selector: [code-node, result, style_tag]
+            - variable: reasoning_short
+              value_selector: [code-node, result, reasoning_short]

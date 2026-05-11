@@ -1,0 +1,272 @@
+app:
+  description: 'Rewrites a user''s rough image request into a high-quality prompt
+    optimized for OpenAI gpt-image-2. Input: raw_prompt. Output: JSON with optimized_prompt,
+    aspect_ratio, size_hint, style_tag, reasoning_short.'
+  icon: "\U0001F3A8"
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Prompt Optimizer - gpt-image-2
+  use_icon_as_answer_icon: false
+
+kind: app
+version: 0.1.5
+
+workflow:
+  environment_variables: []
+  conversation_variables: []
+
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+
+  graph:
+    edges:
+      - id: start-to-llm
+        source: start-node
+        sourceHandle: source
+        target: llm-node
+        targetHandle: target
+        type: custom
+      - id: llm-to-code
+        source: llm-node
+        sourceHandle: source
+        target: code-node
+        targetHandle: target
+        type: custom
+      - id: code-to-end
+        source: code-node
+        sourceHandle: source
+        target: end-node
+        targetHandle: target
+        type: custom
+
+    nodes:
+      - id: start-node
+        type: custom
+        position: { x: 80, y: 200 }
+        data:
+          type: start
+          title: Start
+          desc: 'Inputs from frontend'
+          variables:
+            - variable: raw_prompt
+              label: Raw user prompt
+              type: paragraph
+              required: true
+              max_length: 2000
+            - variable: style_preset
+              label: Optional style preset
+              type: select
+              required: false
+              options:
+                - auto
+                - photo
+                - illustration
+                - 3d
+                - design
+                - anime
+              default: auto
+            - variable: aspect_ratio_hint
+              label: Optional aspect ratio hint
+              type: select
+              required: false
+              options:
+                - auto
+                - '1:1'
+                - '3:2'
+                - '2:3'
+                - '4:3'
+                - '3:4'
+                - '16:9'
+                - '9:16'
+              default: auto
+
+      - id: llm-node
+        type: custom
+        position: { x: 420, y: 200 }
+        data:
+          type: llm
+          title: GPT-5 Optimizer
+          desc: 'Rewrites raw prompt into JSON tuned for gpt-image-2'
+          model:
+            provider: openai
+            name: gpt-5
+            mode: chat
+            completion_params:
+              temperature: 0.4
+              top_p: 1
+              max_tokens: 1200
+              response_format: { type: json_object }
+          prompt_template:
+            - role: system
+              text: |
+                You are ImagePromptOptimizer-OAI, an expert image-prompt engineer.
+                Your single job: rewrite a user's rough request into a high-quality
+                prompt optimized for OpenAI's gpt-image-2 (ChatGPT Images 2.0).
+
+                What you know about gpt-image-2:
+                - It is a reasoning image model. It plans scene, layout, physics
+                  and text before rendering. Natural-language paragraphs work
+                  much better than comma-separated tags.
+                - It renders text inside images extremely well (multilingual).
+                  Wrap exact on-image text in straight double quotes and state
+                  font style, weight, color and placement.
+                - It follows instructions literally. Be explicit.
+                - Supported aspect ratios: 1:1, 3:2, 2:3, 4:3, 3:4, 16:9, 9:16.
+                - Negative guidance goes inside the paragraph (no watermark,
+                  no extra limbs, no blurred text). No separate negative field.
+                - Avoid real private people, minors in unsafe contexts, sexual
+                  content, self-harm, weapons manufacture, copyrighted characters.
+
+                Output contract (STRICT). Return ONLY a single JSON object with
+                keys: optimized_prompt (60-180 word natural paragraph),
+                aspect_ratio (one of the 7 above),
+                size_hint (1024x1024 | 1024x1536 | 1536x1024 | 2048x2048),
+                style_tag (photo | illustration | 3d | design | anime | mixed),
+                reasoning_short (<= 25 words).
+
+                Rewrite procedure:
+                1. Detect input language. Translate meaning to English. Keep
+                   proper nouns and any quoted on-image text in original language.
+                2. Classify intent: portrait, product, scene, poster, infographic,
+                   logo/design, illustration, 3d-figurine, edit.
+                3. Apply a 6-part mental outline: Subject, Composition, Scene,
+                   Style, Constraints, Output. Do not print the outline.
+                4. Compose one paragraph: subject with specific identity traits,
+                   action/pose/expression, environment/time, camera language
+                   (lens, angle, DoF) or medium language for non-photo,
+                   lighting (source, direction, quality, color temperature),
+                   color palette and mood, on-image text in straight quotes
+                   with font/weight/placement, negative clauses.
+                5. Pick aspect_ratio from intent (portrait/story 9:16, banner
+                   16:9, avatar 1:1, poster 2:3, otherwise 1:1).
+                6. Length 60-180 words, hard cap 200.
+                7. If user supplied style_preset != auto, honor it.
+                8. If user supplied aspect_ratio_hint != auto, honor it.
+                9. Safety: on unsafe intent return
+                   {"optimized_prompt":"","aspect_ratio":"1:1","size_hint":"1024x1024","style_tag":"photo","reasoning_short":"Request rejected by safety policy."}
+
+                Few-shot:
+
+                User: "一只可爱的猫"
+                Assistant: {"optimized_prompt":"A close-up portrait of a fluffy ginger kitten with large amber eyes and soft pink paw pads, sitting alert on a pale linen blanket near a sunlit window. Shot on an 85mm lens at f/1.8, shallow depth of field, eye-level angle, rule-of-thirds composition. Warm late-afternoon side light with gentle rim light on the fur and soft falloff into the background. Creamy neutral palette with touches of peach. Photorealistic, fine fur detail, natural catchlights in the eyes. No watermark, no text, no distorted anatomy, no extra limbs.","aspect_ratio":"1:1","size_hint":"1024x1024","style_tag":"photo","reasoning_short":"Simple cute-pet portrait; square works on any feed."}
+
+                User: "做一张618大促手机海报,写'全场五折'"
+                Assistant: {"optimized_prompt":"A vertical e-commerce poster for a flagship smartphone floating slightly above a glossy red pedestal, three-quarter front view, centered composition with generous top headline space. Studio product photography: 50mm lens, f/8 for edge-to-edge sharpness, key softbox from upper left, subtle kicker from the right, seamless gradient backdrop from deep crimson to warm orange. Dynamic confetti and light streaks radiate from behind the phone. The large headline reads \"全场五折\" in bold condensed sans-serif white with a thin gold outline, centered in the upper third; a small subtitle reads \"618 大促 | 今日开抢\" in medium weight below. Festive, premium, high contrast. No watermark, no extra phones, no distorted text, no logos of real brands.","aspect_ratio":"2:3","size_hint":"1024x1536","style_tag":"design","reasoning_short":"Poster with prominent Chinese headline; 2:3 suits print-like poster."}
+
+                Return ONLY the JSON object. No code fences. No prose.
+            - role: user
+              text: |
+                raw_prompt: {{#start-node.raw_prompt#}}
+                style_preset: {{#start-node.style_preset#}}
+                aspect_ratio_hint: {{#start-node.aspect_ratio_hint#}}
+
+      - id: code-node
+        type: custom
+        position: { x: 760, y: 200 }
+        data:
+          type: code
+          title: Validate & Normalize
+          desc: 'Parse JSON, enforce schema, apply hints, graceful fallback'
+          code_language: python3
+          code: |
+            import json
+
+            def main(llm_text: str, raw_prompt: str, style_preset: str, aspect_ratio_hint: str) -> dict:
+                allowed_ratios = {"1:1","3:2","2:3","4:3","3:4","16:9","9:16"}
+                allowed_sizes = {"1024x1024","1024x1536","1536x1024","2048x2048"}
+                allowed_styles = {"photo","illustration","3d","design","anime","mixed"}
+
+                fallback = {
+                    "optimized_prompt": raw_prompt.strip(),
+                    "aspect_ratio": "1:1",
+                    "size_hint": "1024x1024",
+                    "style_tag": "photo",
+                    "reasoning_short": "Fallback: optimizer output unparseable."
+                }
+
+                try:
+                    data = json.loads(llm_text)
+                except Exception:
+                    return {"result": fallback}
+
+                out = {
+                    "optimized_prompt": str(data.get("optimized_prompt","")).strip() or fallback["optimized_prompt"],
+                    "aspect_ratio": data.get("aspect_ratio","1:1"),
+                    "size_hint": data.get("size_hint","1024x1024"),
+                    "style_tag": data.get("style_tag","photo"),
+                    "reasoning_short": str(data.get("reasoning_short",""))[:200]
+                }
+
+                if out["aspect_ratio"] not in allowed_ratios:
+                    out["aspect_ratio"] = "1:1"
+                if out["size_hint"] not in allowed_sizes:
+                    out["size_hint"] = "1024x1024"
+                if out["style_tag"] not in allowed_styles:
+                    out["style_tag"] = "photo"
+
+                if aspect_ratio_hint and aspect_ratio_hint != "auto" and aspect_ratio_hint in allowed_ratios:
+                    out["aspect_ratio"] = aspect_ratio_hint
+
+                if style_preset and style_preset != "auto" and style_preset in allowed_styles:
+                    out["style_tag"] = style_preset
+
+                ratio_to_size = {
+                    "1:1":  "1024x1024",
+                    "3:2":  "1536x1024",
+                    "2:3":  "1024x1536",
+                    "4:3":  "1536x1024",
+                    "3:4":  "1024x1536",
+                    "16:9": "1536x1024",
+                    "9:16": "1024x1536",
+                }
+                out["size_hint"] = ratio_to_size.get(out["aspect_ratio"], out["size_hint"])
+
+                return {"result": out}
+          inputs:
+            llm_text:
+              type: string
+              value_selector: [llm-node, text]
+            raw_prompt:
+              type: string
+              value_selector: [start-node, raw_prompt]
+            style_preset:
+              type: string
+              value_selector: [start-node, style_preset]
+            aspect_ratio_hint:
+              type: string
+              value_selector: [start-node, aspect_ratio_hint]
+          outputs:
+            result:
+              type: object
+
+      - id: end-node
+        type: custom
+        position: { x: 1100, y: 200 }
+        data:
+          type: end
+          title: End
+          desc: 'Structured JSON returned to the frontend'
+          outputs:
+            - variable: optimized_prompt
+              value_selector: [code-node, result, optimized_prompt]
+            - variable: aspect_ratio
+              value_selector: [code-node, result, aspect_ratio]
+            - variable: size_hint
+              value_selector: [code-node, result, size_hint]
+            - variable: style_tag
+              value_selector: [code-node, result, style_tag]
+            - variable: reasoning_short
+              value_selector: [code-node, result, reasoning_short]
