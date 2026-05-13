@@ -1,0 +1,5 @@
+interface:
+  display_name: "Shenxiang Image Generator"
+  short_description: "AI image gen via Dify intent + gpt-image-2"
+  brand_color: "#FF6B35"
+  default_prompt: "Use $shenxiang-image-gen to generate an image from this request: a cute cat wearing a space helmet floating in zero gravity"

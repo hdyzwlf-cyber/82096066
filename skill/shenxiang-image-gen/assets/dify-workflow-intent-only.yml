@@ -1,0 +1,168 @@
+app:
+  description: 'Intent recognition only: rewrites a user''s rough image request into
+    a structured JSON contract for Codex to execute with native gpt-image-2.
+    This workflow does NOT generate images — it only produces the optimized prompt and parameters.'
+  icon: "\U0001F3AF"
+  icon_background: '#E8F5E9'
+  mode: workflow
+  name: Intent Recognizer - Image Prompt (for Codex)
+  use_icon_as_answer_icon: false
+
+kind: app
+version: 0.1.5
+
+workflow:
+  environment_variables: []
+  conversation_variables: []
+
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+
+  graph:
+    edges:
+      - id: start-to-llm
+        source: start-node
+        sourceHandle: source
+        target: llm-node
+        targetHandle: target
+        type: custom
+      - id: llm-to-end
+        source: llm-node
+        sourceHandle: source
+        target: end-node
+        targetHandle: target
+        type: custom
+
+    nodes:
+      - id: start-node
+        type: custom
+        position: { x: 80, y: 200 }
+        data:
+          type: start
+          title: Start
+          desc: 'User raw input from frontend'
+          variables:
+            - variable: raw_prompt
+              label: Raw user prompt
+              type: paragraph
+              required: true
+              max_length: 2000
+            - variable: style_preset
+              label: Optional style preset
+              type: select
+              required: false
+              options:
+                - auto
+                - photo
+                - illustration
+                - 3d
+                - design
+                - anime
+              default: auto
+            - variable: aspect_ratio_hint
+              label: Optional aspect ratio hint
+              type: select
+              required: false
+              options:
+                - auto
+                - '1:1'
+                - '3:2'
+                - '2:3'
+                - '4:3'
+                - '3:4'
+                - '16:9'
+                - '9:16'
+              default: auto
+
+      - id: llm-node
+        type: custom
+        position: { x: 420, y: 200 }
+        data:
+          type: llm
+          title: Intent Recognizer (GPT-5)
+          desc: 'Parses user intent and outputs structured JSON for Codex gpt-image-2'
+          model:
+            provider: openai
+            name: gpt-5
+            mode: chat
+            completion_params:
+              temperature: 0.3
+              top_p: 1
+              max_tokens: 800
+              response_format: { type: json_object }
+          prompt_template:
+            - role: system
+              text: |
+                You are an image-intent recognizer. Your ONLY job is to parse the
+                user's request and output a JSON object that another system (Codex
+                with native gpt-image-2) will use to generate the image.
+
+                You do NOT generate images. You ONLY output structured parameters.
+
+                ## Output contract (STRICT)
+
+                Return ONLY a JSON object with these fields:
+                {
+                  "optimized_prompt": "60-180 word English paragraph optimized for gpt-image-2",
+                  "aspect_ratio": "1:1 | 3:2 | 2:3 | 4:3 | 3:4 | 16:9 | 9:16",
+                  "size_hint": "1024x1024 | 1024x1536 | 1536x1024 | 2048x2048",
+                  "style_tag": "photo | illustration | 3d | design | anime | mixed",
+                  "reasoning_short": "≤25 words explaining choices"
+                }
+
+                ## Prompt rewrite rules
+
+                1. Detect input language. Translate meaning to English. Keep
+                   on-image text in original language wrapped in straight quotes.
+                2. Classify intent: portrait, product, scene, poster, infographic,
+                   logo/design, illustration, 3d-figurine, edit.
+                3. Compose ONE paragraph (60-180 words) in this order:
+                   Subject → Action/pose → Environment → Camera language (lens,
+                   angle, DoF) → Lighting → Color palette → On-image text in
+                   quotes with font/weight/placement → Negative clauses.
+                4. Pick aspect_ratio: portrait/story→9:16, banner→16:9,
+                   avatar/square→1:1, poster→2:3, otherwise 1:1.
+                5. Map size_hint: 1:1→1024x1024, landscape ratios→1536x1024,
+                   portrait ratios→1024x1536.
+                6. Honor user overrides (style_preset, aspect_ratio_hint) if
+                   provided and not "auto".
+                7. Safety: if unsafe intent, return:
+                   {"optimized_prompt":"","aspect_ratio":"1:1","size_hint":"1024x1024","style_tag":"photo","reasoning_short":"Request rejected by safety policy."}
+
+                ## Key principles for gpt-image-2 prompts
+                - Natural-language paragraphs, NOT comma-separated tags
+                - Be explicit and literal
+                - Include photography vocabulary (lens, aperture, film stock)
+                - Inline negative guidance ("no watermark, no extra limbs")
+                - Wrap on-image text in straight double quotes
+
+                Return ONLY the JSON. No code fences. No commentary.
+            - role: user
+              text: |
+                raw_prompt: {{#start-node.raw_prompt#}}
+                style_preset: {{#start-node.style_preset#}}
+                aspect_ratio_hint: {{#start-node.aspect_ratio_hint#}}
+
+      - id: end-node
+        type: custom
+        position: { x: 760, y: 200 }
+        data:
+          type: end
+          title: End
+          desc: 'JSON contract returned to Codex via API'
+          outputs:
+            - variable: result_json
+              value_selector: [llm-node, text]
