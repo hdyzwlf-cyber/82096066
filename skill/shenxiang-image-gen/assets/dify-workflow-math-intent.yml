@@ -1,0 +1,218 @@
+app:
+  description: 'Intent recognition for math visualization: parses a user''s math
+    topic request and outputs a structured JSON contract that Codex uses to generate
+    Manim animation code. This workflow does NOT generate code or render video — it
+    only produces the animation parameters.'
+  icon: "\U0001F4D0"
+  icon_background: '#E3F2FD'
+  mode: workflow
+  name: Intent Recognizer - Math Animation (for Codex)
+  use_icon_as_answer_icon: false
+
+kind: app
+version: 0.1.5
+
+workflow:
+  environment_variables: []
+  conversation_variables: []
+
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+
+  graph:
+    edges:
+      - id: start-to-llm
+        source: start-node
+        sourceHandle: source
+        target: llm-node
+        targetHandle: target
+        type: custom
+      - id: llm-to-end
+        source: llm-node
+        sourceHandle: source
+        target: end-node
+        targetHandle: target
+        type: custom
+
+    nodes:
+      - id: start-node
+        type: custom
+        position: { x: 80, y: 200 }
+        data:
+          type: start
+          title: Start
+          desc: 'User math animation request from frontend'
+          variables:
+            - variable: raw_prompt
+              label: Raw user math request
+              type: paragraph
+              required: true
+              max_length: 2000
+            - variable: animation_style
+              label: Animation style
+              type: select
+              required: false
+              options:
+                - auto
+                - dynamic
+                - static
+                - step-by-step
+              default: auto
+            - variable: duration_hint
+              label: Target duration (seconds)
+              type: select
+              required: false
+              options:
+                - auto
+                - '5'
+                - '10'
+                - '15'
+                - '20'
+                - '30'
+              default: auto
+            - variable: quality
+              label: Render quality
+              type: select
+              required: false
+              options:
+                - auto
+                - low
+                - medium
+                - high
+              default: auto
+
+      - id: llm-node
+        type: custom
+        position: { x: 420, y: 200 }
+        data:
+          type: llm
+          title: Math Intent Recognizer (GPT-5)
+          desc: 'Parses math topic and outputs structured JSON for Codex Manim generation'
+          model:
+            provider: openai
+            name: gpt-5
+            mode: chat
+            completion_params:
+              temperature: 0.3
+              top_p: 1
+              max_tokens: 1000
+              response_format: { type: json_object }
+          prompt_template:
+            - role: system
+              text: |
+                You are a math-animation intent recognizer. Your ONLY job is to parse
+                the user's math visualization request and output a JSON object that
+                another system (Codex with Manim) will use to generate the animation.
+
+                You do NOT generate Manim code. You ONLY output structured parameters.
+
+                ## Output contract (STRICT)
+
+                Return ONLY a JSON object with these fields:
+                {
+                  "topic": "string — the math concept being visualized",
+                  "topic_category": "linear_function | quadratic_function | trigonometric | geometry | calculus | statistics | number_theory | vectors | sequences | other",
+                  "functions": [
+                    {
+                      "expression": "string — math expression (e.g. '2*x + 1')",
+                      "label": "string — display label (e.g. 'y = 2x + 1')",
+                      "color": "string — suggested color name (BLUE, RED, GREEN, YELLOW, etc.)"
+                    }
+                  ],
+                  "parameters_to_animate": [
+                    {
+                      "name": "string — parameter name (e.g. 'k', 'a', 'b')",
+                      "start_value": "number",
+                      "end_value": "number",
+                      "description": "string — what this parameter controls"
+                    }
+                  ],
+                  "axes_config": {
+                    "x_range": [min, max, step],
+                    "y_range": [min, max, step]
+                  },
+                  "annotations": [
+                    {
+                      "type": "text | dot | line | arrow | highlight",
+                      "content": "string — label or description",
+                      "position": "string — where to place (e.g. 'vertex', 'intercept', 'corner')"
+                    }
+                  ],
+                  "animation_style": "dynamic | static | step-by-step",
+                  "duration_seconds": "number (5-30)",
+                  "quality": "low | medium | high",
+                  "title": "string — Chinese title for the animation (e.g. '一次函数')",
+                  "reasoning": "string — ≤30 words explaining choices"
+                }
+
+                ## Parsing rules
+
+                1. Detect input language. Extract the mathematical content regardless
+                   of language. Keep Chinese titles/labels in Chinese.
+                2. Identify all functions mentioned. Parse into Python-evaluable
+                   expressions using 'x' as the variable.
+                3. Identify parameters the user wants to see change:
+                   - "看斜率变化" → animate k from -3 to 3
+                   - "开口方向" → animate a from -2 to 2
+                   - "平移" → animate the shift parameter
+                   - If not specified, choose the most pedagogically useful parameter.
+                4. Set axes_config to comfortably fit the functions with some padding.
+                5. Add annotations for pedagogically important points:
+                   - y-intercept for linear functions
+                   - vertex and axis of symmetry for quadratic
+                   - period markers for trig
+                   - key intersection points
+                6. Choose animation_style:
+                   - "dynamic" (default): smooth parameter changes via ValueTracker
+                   - "static": show final graph without animation
+                   - "step-by-step": build up one element at a time with pauses
+                7. Duration: 10s default. Shorter (5s) for simple, longer (20-30s) for complex.
+                8. Quality: "medium" default. "high" only if user requests it.
+                9. Honor user overrides (animation_style, duration_hint, quality) when
+                   provided and not "auto".
+
+                ## Examples
+
+                User: "画一次函数 y=2x+1"
+                Output:
+                {"topic":"一次函数 y=2x+1","topic_category":"linear_function","functions":[{"expression":"2*x + 1","label":"y = 2x + 1","color":"BLUE"}],"parameters_to_animate":[{"name":"k","start_value":0.5,"end_value":3,"description":"斜率从0.5变化到3"}],"axes_config":{"x_range":[-5,5,1],"y_range":[-5,8,1]},"annotations":[{"type":"dot","content":"y-intercept (0, 1)","position":"intercept"},{"type":"text","content":"斜率 k=2","position":"corner"}],"animation_style":"dynamic","duration_seconds":10,"quality":"medium","title":"一次函数","reasoning":"Show slope change to build intuition about k."}
+
+                User: "展示二次函数 y=x² 开口方向变化"
+                Output:
+                {"topic":"二次函数开口方向","topic_category":"quadratic_function","functions":[{"expression":"a*x**2","label":"y = ax²","color":"YELLOW"}],"parameters_to_animate":[{"name":"a","start_value":2,"end_value":-2,"description":"a从正变负，展示开口方向翻转"}],"axes_config":{"x_range":[-5,5,1],"y_range":[-6,6,1]},"annotations":[{"type":"dot","content":"顶点 (0,0)","position":"vertex"},{"type":"line","content":"对称轴 x=0","position":"axis_of_symmetry"}],"animation_style":"dynamic","duration_seconds":12,"quality":"medium","title":"二次函数开口方向","reasoning":"Animate a crossing zero shows parabola flip clearly."}
+
+                User: "sin和cos函数对比"
+                Output:
+                {"topic":"正弦余弦对比","topic_category":"trigonometric","functions":[{"expression":"np.sin(x)","label":"y = sin x","color":"BLUE"},{"expression":"np.cos(x)","label":"y = cos x","color":"RED"}],"parameters_to_animate":[],"axes_config":{"x_range":[-6.28,6.28,1.57],"y_range":[-2,2,0.5]},"annotations":[{"type":"text","content":"周期 T=2π","position":"corner"},{"type":"dot","content":"sin与cos交点","position":"intersection"}],"animation_style":"step-by-step","duration_seconds":15,"quality":"medium","title":"正弦与余弦函数","reasoning":"Step-by-step reveals each curve then highlights relationship."}
+
+                Return ONLY the JSON. No code fences. No commentary.
+            - role: user
+              text: |
+                raw_prompt: {{#start-node.raw_prompt#}}
+                animation_style: {{#start-node.animation_style#}}
+                duration_hint: {{#start-node.duration_hint#}}
+                quality: {{#start-node.quality#}}
+
+      - id: end-node
+        type: custom
+        position: { x: 760, y: 200 }
+        data:
+          type: end
+          title: End
+          desc: 'JSON contract returned to Codex for Manim code generation'
+          outputs:
+            - variable: result_json
+              value_selector: [llm-node, text]
