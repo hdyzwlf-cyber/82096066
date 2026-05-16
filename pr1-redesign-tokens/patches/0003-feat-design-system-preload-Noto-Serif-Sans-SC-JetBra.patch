@@ -1,0 +1,36 @@
+From 450d366942515ba84f7df1a69db4186c5e1a1b1c Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sat, 16 May 2026 18:40:49 +0000
+Subject: [PATCH 3/5] feat(design-system): preload Noto Serif/Sans SC +
+ JetBrains Mono + Ma Shan Zheng via Google Fonts
+
+Co-authored-by: hdyzwlf-cyber <283628485+hdyzwlf-cyber@users.noreply.github.com>
+---
+ app/layout.tsx | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/app/layout.tsx b/app/layout.tsx
+index dda5a74..1dc64b2 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -123,7 +123,16 @@ export default function RootLayout({
+         <link rel="preconnect" href="https://cdn.authing.co" crossOrigin="anonymous" />
+         <link rel="dns-prefetch" href={`//${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/^https?:\/\//, '')}`} />
+         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} crossOrigin="anonymous" />
+-        
++
++        {/* 🖌 v2「墨砚」设计系统字体 - 思源宋体 + 思源黑体 + JetBrains Mono + 毛笔体 */}
++        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
++        <link rel="preconnect" href="https://fonts.googleapis.com" />
++        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
++        <link
++          rel="stylesheet"
++          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&family=Ma+Shan+Zheng&display=swap"
++        />
++
+         {/* Authing CSS 由登录页自行动态加载（guard-react 组件内部加载），无需全局同步引入 */}
+         {/* PWA Apple 图标 - 使用 CDN */}
+         <link rel="apple-touch-icon" href="https://cdn.shenxiang.school/icons/icon-192x192.png" />
+-- 
+2.50.1
+
