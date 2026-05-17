@@ -1,0 +1,2636 @@
+From 06e0381bbe31deb553666c5ab122d66e26d36494 Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sat, 16 May 2026 19:03:33 +0000
+Subject: [PATCH] =?UTF-8?q?feat(ui-v2):=20introduce=E5=A2=A8=E7=A0=9A=20ui?=
+ =?UTF-8?q?=20library=20=E2=80=94=2027=20components=20alongside=20legacy?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ __tests__/v2-ui-shape.test.ts      | 184 +++++++++++++++++++++++
+ components/ui/v2/alert.tsx         |  72 +++++++++
+ components/ui/v2/avatar.tsx        |  57 ++++++++
+ components/ui/v2/badge.tsx         |  54 +++++++
+ components/ui/v2/button.tsx        | 136 +++++++++++++++++
+ components/ui/v2/card.tsx          | 137 +++++++++++++++++
+ components/ui/v2/checkbox.tsx      |  50 +++++++
+ components/ui/v2/dialog.tsx        | 144 ++++++++++++++++++
+ components/ui/v2/dropdown-menu.tsx | 228 +++++++++++++++++++++++++++++
+ components/ui/v2/empty-state.tsx   | 101 +++++++++++++
+ components/ui/v2/error-state.tsx   |  79 ++++++++++
+ components/ui/v2/index.ts          | 117 +++++++++++++++
+ components/ui/v2/input.tsx         |  43 ++++++
+ components/ui/v2/label.tsx         |  28 ++++
+ components/ui/v2/loading-state.tsx |  77 ++++++++++
+ components/ui/v2/popover.tsx       |  41 ++++++
+ components/ui/v2/progress.tsx      |  34 +++++
+ components/ui/v2/radio.tsx         |  50 +++++++
+ components/ui/v2/scroll-area.tsx   |  57 ++++++++
+ components/ui/v2/seal.tsx          | 143 ++++++++++++++++++
+ components/ui/v2/select.tsx        | 153 +++++++++++++++++++
+ components/ui/v2/separator.tsx     |  54 +++++++
+ components/ui/v2/sheet.tsx         | 150 +++++++++++++++++++
+ components/ui/v2/skeleton.tsx      |  22 +++
+ components/ui/v2/switch.tsx        |  42 ++++++
+ components/ui/v2/tabs.tsx          |  69 +++++++++
+ components/ui/v2/textarea.tsx      |  35 +++++
+ components/ui/v2/tooltip.tsx       |  40 +++++
+ 28 files changed, 2397 insertions(+)
+ create mode 100644 __tests__/v2-ui-shape.test.ts
+ create mode 100644 components/ui/v2/alert.tsx
+ create mode 100644 components/ui/v2/avatar.tsx
+ create mode 100644 components/ui/v2/badge.tsx
+ create mode 100644 components/ui/v2/button.tsx
+ create mode 100644 components/ui/v2/card.tsx
+ create mode 100644 components/ui/v2/checkbox.tsx
+ create mode 100644 components/ui/v2/dialog.tsx
+ create mode 100644 components/ui/v2/dropdown-menu.tsx
+ create mode 100644 components/ui/v2/empty-state.tsx
+ create mode 100644 components/ui/v2/error-state.tsx
+ create mode 100644 components/ui/v2/index.ts
+ create mode 100644 components/ui/v2/input.tsx
+ create mode 100644 components/ui/v2/label.tsx
+ create mode 100644 components/ui/v2/loading-state.tsx
+ create mode 100644 components/ui/v2/popover.tsx
+ create mode 100644 components/ui/v2/progress.tsx
+ create mode 100644 components/ui/v2/radio.tsx
+ create mode 100644 components/ui/v2/scroll-area.tsx
+ create mode 100644 components/ui/v2/seal.tsx
+ create mode 100644 components/ui/v2/select.tsx
+ create mode 100644 components/ui/v2/separator.tsx
+ create mode 100644 components/ui/v2/sheet.tsx
+ create mode 100644 components/ui/v2/skeleton.tsx
+ create mode 100644 components/ui/v2/switch.tsx
+ create mode 100644 components/ui/v2/tabs.tsx
+ create mode 100644 components/ui/v2/textarea.tsx
+ create mode 100644 components/ui/v2/tooltip.tsx
+
+diff --git a/__tests__/v2-ui-shape.test.ts b/__tests__/v2-ui-shape.test.ts
+new file mode 100644
+index 0000000..8741a66
+--- /dev/null
++++ b/__tests__/v2-ui-shape.test.ts
+@@ -0,0 +1,184 @@
++/**
++ * 🖌 v2 UI 组件库形状契约测试
++ *
++ * 守住关键设计纪律：
++ *   - 5 种且仅 5 种 button variant
++ *   - 3 种且仅 3 种 card variant
++ *   - 朱印组件存在
++ *   - index.ts 出口完整
++ */
++
++import fs from "fs"
++import path from "path"
++
++const root = path.resolve(__dirname, "..")
++const v2Dir = path.join(root, "components/ui/v2")
++
++function read(rel: string) {
++  return fs.readFileSync(path.join(v2Dir, rel), "utf8")
++}
++
++describe("v2 UI library — directory structure", () => {
++  it("contains all required component files", () => {
++    const required = [
++      "button.tsx",
++      "card.tsx",
++      "input.tsx",
++      "textarea.tsx",
++      "label.tsx",
++      "badge.tsx",
++      "alert.tsx",
++      "checkbox.tsx",
++      "radio.tsx",
++      "switch.tsx",
++      "select.tsx",
++      "tabs.tsx",
++      "dialog.tsx",
++      "sheet.tsx",
++      "popover.tsx",
++      "tooltip.tsx",
++      "dropdown-menu.tsx",
++      "scroll-area.tsx",
++      "separator.tsx",
++      "skeleton.tsx",
++      "progress.tsx",
++      "avatar.tsx",
++      "loading-state.tsx",
++      "empty-state.tsx",
++      "error-state.tsx",
++      "seal.tsx",
++      "index.ts",
++    ]
++    for (const file of required) {
++      expect(fs.existsSync(path.join(v2Dir, file))).toBe(true)
++    }
++  })
++})
++
++describe("v2 Button — five and only five variants", () => {
++  const src = read("button.tsx")
++
++  it("declares variant: primary / seal / outline / ghost / link", () => {
++    for (const variant of ["primary", "seal", "outline", "ghost", "link"]) {
++      expect(src).toMatch(new RegExp(`${variant}:`))
++    }
++  })
++
++  it("does not introduce non-sanctioned variants (destructive/secondary/...)", () => {
++    // 在 variants 块里禁止出现这些名字
++    const variantBlock = src.split("variants: {")[1]?.split("defaultVariants")[0] || ""
++    for (const banned of ["destructive:", "secondary:"]) {
++      expect(variantBlock).not.toContain(banned)
++    }
++  })
++
++  it("uses ink/seal CSS variables instead of hardcoded brand colors", () => {
++    expect(src).toContain("--ink-600")
++    expect(src).toContain("--seal-500")
++    expect(src).not.toMatch(/#10A37F|#16a34a/)
++  })
++
++  it("does not use active:scale-95 (replaces with translateY for stamp feel)", () => {
++    expect(src).not.toMatch(/active:scale-9[58]/)
++    expect(src).toContain("active:translate-y-[1px]")
++  })
++})
++
++describe("v2 Card — three and only three variants", () => {
++  const src = read("card.tsx")
++  it("declares variant: paper / elevated / inset", () => {
++    for (const variant of ["paper:", "elevated:", "inset:"]) {
++      expect(src).toMatch(variant)
++    }
++  })
++
++  it("uses paper/ink CSS tokens", () => {
++    expect(src).toContain("--paper-50")
++    expect(src).toContain("--ink-900")
++  })
++})
++
++describe("v2 Input / Textarea — error visual via aria-invalid + seal-500", () => {
++  const inputSrc = read("input.tsx")
++  it("uses paper background with ink focus border", () => {
++    expect(inputSrc).toContain("--paper-100")
++    expect(inputSrc).toContain("focus-visible:border-[var(--ink-600)]")
++  })
++  it("provides invalid prop and aria-invalid red border", () => {
++    expect(inputSrc).toContain("invalid")
++    expect(inputSrc).toContain("--seal-500")
++  })
++})
++
++describe("v2 Seal stamp module exists", () => {
++  const sealSrc = read("seal.tsx")
++  it("exports SealStamp + ScoreSeal", () => {
++    expect(sealSrc).toContain("export function SealStamp")
++    expect(sealSrc).toContain("export function ScoreSeal")
++  })
++  it("uses seal-500 with shadow", () => {
++    expect(sealSrc).toContain("--seal-500")
++    expect(sealSrc).toContain("rotate")
++  })
++})
++
++describe("v2 LoadingState uses InkBrush, not spinner", () => {
++  const loadSrc = read("loading-state.tsx")
++  it("imports InkBrush from motion library", () => {
++    expect(loadSrc).toContain('from "@/components/motion/InkMotion"')
++    expect(loadSrc).toContain("InkBrush")
++  })
++})
++
++describe("v2 index.ts — re-exports surface", () => {
++  const indexSrc = fs.readFileSync(path.join(v2Dir, "index.ts"), "utf8")
++  const required = [
++    "ButtonV2",
++    "CardV2",
++    "InputV2",
++    "TextareaV2",
++    "LabelV2",
++    "BadgeV2",
++    "AlertV2",
++    "DialogV2",
++    "SheetV2",
++    "TabsV2",
++    "DropdownMenuV2",
++    "ScrollAreaV2",
++    "SwitchV2",
++    "SelectV2",
++    "PopoverV2",
++    "TooltipV2",
++    "AvatarV2",
++    "LoadingStateV2",
++    "EmptyStateV2",
++    "ErrorStateV2",
++    "SealStamp",
++    "ScoreSeal",
++    "ProgressV2",
++    "SeparatorV2",
++    "SkeletonV2",
++    "CheckboxV2",
++    "RadioGroupV2",
++  ]
++  for (const sym of required) {
++    it(`re-exports ${sym}`, () => {
++      expect(indexSrc).toMatch(new RegExp(`\\b${sym}\\b`))
++    })
++  }
++})
++
++describe("v2 components do not import legacy shadcn equivalents", () => {
++  const allFiles = fs
++    .readdirSync(v2Dir)
++    .filter((f) => f.endsWith(".tsx"))
++  for (const file of allFiles) {
++    it(`${file} does not import @/components/ui/[...] (legacy)`, () => {
++      const src = fs.readFileSync(path.join(v2Dir, file), "utf8")
++      // 允许：@/components/ui/v2/...
++      // 禁止：@/components/ui/button、@/components/ui/card 等
++      const legacyImports = src.match(/from\s+["']@\/components\/ui\/(?!v2)[^"']+["']/g) || []
++      expect(legacyImports).toEqual([])
++    })
++  }
++})
+diff --git a/components/ui/v2/alert.tsx b/components/ui/v2/alert.tsx
+new file mode 100644
+index 0000000..a7c3cf4
+--- /dev/null
++++ b/components/ui/v2/alert.tsx
+@@ -0,0 +1,72 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Alert
++ *
++ * 4 种 variant：
++ *   - info     墨色信息（中性）
++ *   - success  墨绿成功
++ *   - warning  朱印浅色警告
++ *   - error    朱印红错误
++ *
++ * 不用 toast 弹层 — 那是 sonner 的事。这里是页面内的提示块。
++ */
++
++import * as React from "react"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const alertV2Variants = cva(
++  [
++    "relative w-full rounded-[var(--radius-soft)] px-4 py-3",
++    "font-[var(--font-sans-v2)]",
++    "border",
++    "[&>svg]:size-4 [&>svg]:shrink-0",
++    "[&>[data-icon]]:absolute [&>[data-icon]]:left-4 [&>[data-icon]]:top-3.5",
++    "[&>[data-icon]+*]:pl-7",
++  ].join(" "),
++  {
++    variants: {
++      variant: {
++        info: "bg-[var(--paper-100)] text-[var(--ink-800)] border-[var(--paper-300)]",
++        success: "bg-[var(--ink-50)] text-[var(--ink-800)] border-[var(--ink-200)]",
++        warning: "bg-[var(--seal-50)] text-[var(--seal-600)] border-[var(--seal-100)]",
++        error: "bg-[var(--seal-50)] text-[var(--seal-600)] border-[var(--seal-300)]",
++      },
++    },
++    defaultVariants: { variant: "info" },
++  }
++)
++
++export interface AlertV2Props
++  extends React.ComponentProps<"div">,
++    VariantProps<typeof alertV2Variants> {}
++
++export function AlertV2({ className, variant, role = "alert", ...props }: AlertV2Props) {
++  return (
++    <div
++      data-slot="alert-v2"
++      role={role}
++      className={cn(alertV2Variants({ variant }), className)}
++      {...props}
++    />
++  )
++}
++
++export function AlertV2Title({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="alert-v2-title"
++      className={cn("font-semibold text-[14px] leading-[1.5] mb-1", className)}
++      {...props}
++    />
++  )
++}
++
++export function AlertV2Description({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="alert-v2-description"
++      className={cn("text-[13px] leading-[1.6] opacity-90", className)}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/avatar.tsx b/components/ui/v2/avatar.tsx
+new file mode 100644
+index 0000000..92ec6b8
+--- /dev/null
++++ b/components/ui/v2/avatar.tsx
+@@ -0,0 +1,57 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Avatar
++ */
++
++"use client"
++
++import * as React from "react"
++import * as AvatarPrimitive from "@radix-ui/react-avatar"
++import { cn } from "@/lib/utils"
++
++export function AvatarV2({
++  className,
++  ...props
++}: React.ComponentProps<typeof AvatarPrimitive.Root>) {
++  return (
++    <AvatarPrimitive.Root
++      data-slot="avatar-v2"
++      className={cn(
++        "relative flex size-10 shrink-0 overflow-hidden rounded-full",
++        "bg-[var(--paper-100)] border border-[var(--paper-200)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function AvatarV2Image({
++  className,
++  ...props
++}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
++  return (
++    <AvatarPrimitive.Image
++      data-slot="avatar-v2-image"
++      className={cn("aspect-square size-full object-cover", className)}
++      {...props}
++    />
++  )
++}
++
++export function AvatarV2Fallback({
++  className,
++  ...props
++}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
++  return (
++    <AvatarPrimitive.Fallback
++      data-slot="avatar-v2-fallback"
++      className={cn(
++        "flex size-full items-center justify-center rounded-full",
++        "bg-[var(--paper-100)] text-[var(--ink-700)]",
++        "font-[var(--font-sans-v2)] text-[13px] font-semibold",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/badge.tsx b/components/ui/v2/badge.tsx
+new file mode 100644
+index 0000000..fd7f8b0
+--- /dev/null
++++ b/components/ui/v2/badge.tsx
+@@ -0,0 +1,54 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Badge
++ *
++ * 4 种 variant：
++ *   - ink   主标签（墨绿）
++ *   - paper 中性标签（米色）
++ *   - seal  朱印标签（强调 / 价格 / 时间敏感）
++ *   - ghost 轻量标签（描边）
++ */
++
++import * as React from "react"
++import { Slot } from "@radix-ui/react-slot"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const badgeV2Variants = cva(
++  [
++    "inline-flex items-center justify-center gap-1 w-fit shrink-0 whitespace-nowrap",
++    "px-2 py-0.5 rounded-[var(--radius-pill)]",
++    "font-[var(--font-sans-v2)] text-[12px] font-semibold leading-[1.5]",
++    "transition-colors duration-200",
++    "[&>svg]:size-3 [&>svg]:pointer-events-none",
++  ].join(" "),
++  {
++    variants: {
++      variant: {
++        ink: "bg-[var(--ink-100)] text-[var(--ink-700)] border border-[var(--ink-200)]",
++        paper: "bg-[var(--paper-100)] text-[var(--ink-700)] border border-[var(--paper-300)]",
++        seal: "bg-[var(--seal-50)] text-[var(--seal-600)] border border-[var(--seal-100)]",
++        ghost: "bg-transparent text-[var(--ink-600)] border border-[var(--ink-300)]",
++      },
++    },
++    defaultVariants: { variant: "ink" },
++  }
++)
++
++export interface BadgeV2Props
++  extends React.ComponentProps<"span">,
++    VariantProps<typeof badgeV2Variants> {
++  asChild?: boolean
++}
++
++export function BadgeV2({ className, variant, asChild = false, ...props }: BadgeV2Props) {
++  const Comp = asChild ? Slot : "span"
++  return (
++    <Comp
++      data-slot="badge-v2"
++      className={cn(badgeV2Variants({ variant }), className)}
++      {...props}
++    />
++  )
++}
++
++export { badgeV2Variants }
+diff --git a/components/ui/v2/button.tsx b/components/ui/v2/button.tsx
+new file mode 100644
+index 0000000..d120ab0
+--- /dev/null
++++ b/components/ui/v2/button.tsx
+@@ -0,0 +1,136 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Button
++ *
++ * 五种且仅五种 variant（详见 docs/REDESIGN.md）：
++ *   - primary  墨绿底 + 米白字（每页最多 1 个）
++ *   - seal     朱印红底 + 米白字（关键操作）
++ *   - outline  米白底 + 墨绿边
++ *   - ghost    透明底 + 墨绿字（工具栏）
++ *   - link     文字链接
++ *
++ * 三种且仅三种 size：sm / default / lg
++ *
++ * 按下交互：
++ *   - 不使用 active:scale-95（取消传统 SaaS 弹性）
++ *   - primary / seal: translateY(1px) + 阴影内陷 = 印章按下感
++ *   - outline / ghost: 仅微调底色
++ */
++
++import * as React from "react"
++import { Slot } from "@radix-ui/react-slot"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const buttonV2Variants = cva(
++  [
++    // 基础排版
++    "inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0",
++    "font-[var(--font-sans-v2)] font-semibold leading-none tracking-normal",
++    // 交互
++    "select-none cursor-pointer",
++    "transition-[background-color,border-color,color,box-shadow,transform] duration-200",
++    "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++    // 禁用
++    "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
++    // 图标
++    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
++  ].join(" "),
++  {
++    variants: {
++      variant: {
++        // 主 CTA — 墨绿底 + 米白字（每页最多 1 个）
++        primary: [
++          "rounded-[var(--radius-pill)]",
++          "bg-[var(--ink-600)] text-white",
++          "border border-[var(--ink-700)]/30",
++          "shadow-[0_1px_0_var(--ink-700)]",
++          "hover:bg-[var(--ink-700)]",
++          "active:translate-y-[1px] active:shadow-[inset_0_1px_2px_rgba(14,27,17,0.3)]",
++        ].join(" "),
++
++        // 朱印 — 关键操作（支付 / 下载 / 分享）
++        seal: [
++          "rounded-[var(--radius-pill)]",
++          "bg-[var(--seal-500)] text-white",
++          "border border-[var(--seal-600)]/40",
++          "shadow-[0_1px_0_var(--seal-600)]",
++          "hover:bg-[var(--seal-600)]",
++          "active:translate-y-[1px] active:shadow-[inset_0_1px_2px_rgba(142,45,34,0.45)]",
++        ].join(" "),
++
++        // 次要操作 — 米白底 + 墨绿边
++        outline: [
++          "rounded-[var(--radius-pill)]",
++          "bg-[var(--paper-50)] text-[var(--ink-700)]",
++          "border border-[var(--ink-300)]/60",
++          "hover:bg-[var(--paper-100)] hover:border-[var(--ink-500)]",
++          "active:translate-y-[1px]",
++        ].join(" "),
++
++        // 工具栏 — 透明底 + 墨绿字
++        ghost: [
++          "rounded-[var(--radius-pill)]",
++          "bg-transparent text-[var(--ink-600)]",
++          "border border-transparent",
++          "hover:bg-[var(--ink-50)]",
++          "active:bg-[var(--ink-100)]",
++        ].join(" "),
++
++        // 文字链接
++        link: [
++          "rounded-none",
++          "bg-transparent text-[var(--ink-600)]",
++          "underline-offset-[3px] decoration-[var(--ink-300)]",
++          "hover:underline hover:text-[var(--ink-700)] hover:decoration-[var(--ink-600)]",
++          "px-0 py-0",
++        ].join(" "),
++      },
++      size: {
++        sm: "h-9 px-3 text-[13px] gap-1.5",
++        default: "h-10 px-4 text-[14px]",
++        lg: "h-12 px-6 text-[15px]",
++        icon: "h-10 w-10 p-0 [&_svg]:size-5",
++        "icon-sm": "h-8 w-8 p-0 [&_svg]:size-4",
++        "icon-lg": "h-12 w-12 p-0 [&_svg]:size-6",
++      },
++    },
++    defaultVariants: {
++      variant: "primary",
++      size: "default",
++    },
++    compoundVariants: [
++      // link 变体不应用 size 的 padding
++      { variant: "link", size: "sm", class: "h-auto px-0 py-0" },
++      { variant: "link", size: "default", class: "h-auto px-0 py-0" },
++      { variant: "link", size: "lg", class: "h-auto px-0 py-0" },
++    ],
++  }
++)
++
++export interface ButtonV2Props
++  extends React.ComponentProps<"button">,
++    VariantProps<typeof buttonV2Variants> {
++  asChild?: boolean
++}
++
++export function ButtonV2({
++  className,
++  variant,
++  size,
++  asChild = false,
++  type,
++  ...props
++}: ButtonV2Props) {
++  const Comp = asChild ? Slot : "button"
++  return (
++    <Comp
++      data-slot="button-v2"
++      data-variant={variant ?? "primary"}
++      type={asChild ? undefined : type ?? "button"}
++      className={cn(buttonV2Variants({ variant, size }), className)}
++      {...props}
++    />
++  )
++}
++
++export { buttonV2Variants }
+diff --git a/components/ui/v2/card.tsx b/components/ui/v2/card.tsx
+new file mode 100644
+index 0000000..81ff61b
+--- /dev/null
++++ b/components/ui/v2/card.tsx
+@@ -0,0 +1,137 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Card
++ *
++ * 三种且仅三种 variant：
++ *   - paper    内容、产物、报告（米白 + 1px 墨边 + shadow-paper + radius-sharp）
++ *   - elevated 模态、抽屉、悬浮卡（无边框 + shadow-elevated + radius-card）
++ *   - inset    表单组、信息盒（paper-100 底 + 无阴影 + radius-soft）
++ *
++ * 子组件保持 shadcn Card 同款 API：
++ *   <CardV2><CardHeader><CardTitle/><CardDescription/></CardHeader>
++ *     <CardContent/><CardFooter/></CardV2>
++ */
++
++import * as React from "react"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const cardV2Variants = cva(
++  [
++    "flex flex-col bg-[var(--paper-50)] text-[var(--ink-900)]",
++    "transition-[border-color,box-shadow,transform] duration-300 ease-[var(--ease-paper-fold)]",
++  ].join(" "),
++  {
++    variants: {
++      variant: {
++        paper: [
++          "rounded-[var(--radius-sharp)]",
++          "border border-[var(--paper-200)]",
++          "shadow-[var(--shadow-paper)]",
++        ].join(" "),
++        elevated: [
++          "rounded-[var(--radius-card)]",
++          "border-0",
++          "shadow-[var(--shadow-elevated)]",
++        ].join(" "),
++        inset: [
++          "rounded-[var(--radius-soft)]",
++          "border border-[var(--paper-200)]/60",
++          "bg-[var(--paper-100)]",
++          "shadow-none",
++        ].join(" "),
++      },
++      interactive: {
++        true: [
++          "cursor-pointer",
++          "hover:border-[var(--ink-300)]",
++          "hover:shadow-[var(--shadow-elevated)]",
++          "hover:-translate-y-[1px]",
++        ].join(" "),
++        false: "",
++      },
++    },
++    defaultVariants: {
++      variant: "paper",
++      interactive: false,
++    },
++  }
++)
++
++export interface CardV2Props
++  extends React.ComponentProps<"div">,
++    VariantProps<typeof cardV2Variants> {}
++
++export function CardV2({ className, variant, interactive, ...props }: CardV2Props) {
++  return (
++    <div
++      data-slot="card-v2"
++      data-variant={variant ?? "paper"}
++      className={cn(cardV2Variants({ variant, interactive }), className)}
++      {...props}
++    />
++  )
++}
++
++export function CardV2Header({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="card-v2-header"
++      className={cn(
++        "flex flex-col gap-2 px-5 pt-5 sm:px-6 sm:pt-6 [.has-action_&]:grid-cols-[1fr_auto]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function CardV2Title({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="card-v2-title"
++      className={cn(
++        "font-[var(--font-display)] text-[20px] font-bold leading-tight tracking-[-0.01em] text-[var(--ink-800)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function CardV2Description({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="card-v2-description"
++      className={cn(
++        "font-[var(--font-sans-v2)] text-[14px] leading-[1.6] text-[var(--ink-500)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function CardV2Content({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="card-v2-content"
++      className={cn("px-5 py-4 sm:px-6 sm:py-5 flex-1", className)}
++      {...props}
++    />
++  )
++}
++
++export function CardV2Footer({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="card-v2-footer"
++      className={cn(
++        "flex items-center gap-3 px-5 pb-5 pt-2 sm:px-6 sm:pb-6 [.with-divider_&]:border-t [.with-divider_&]:border-[var(--paper-200)] [.with-divider_&]:pt-4",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export { cardV2Variants }
+diff --git a/components/ui/v2/checkbox.tsx b/components/ui/v2/checkbox.tsx
+new file mode 100644
+index 0000000..ab67858
+--- /dev/null
++++ b/components/ui/v2/checkbox.tsx
+@@ -0,0 +1,50 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Checkbox
++ *
++ * 视觉：朱印红勾（关键确认场景） / 墨绿勾（普通场景）
++ */
++
++"use client"
++
++import * as React from "react"
++import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
++import { Check, Minus } from "lucide-react"
++import { cn } from "@/lib/utils"
++
++export function CheckboxV2({
++  className,
++  variant = "ink",
++  ...props
++}: React.ComponentProps<typeof CheckboxPrimitive.Root> & {
++  variant?: "ink" | "seal"
++}) {
++  return (
++    <CheckboxPrimitive.Root
++      data-slot="checkbox-v2"
++      className={cn(
++        "peer size-4 shrink-0 rounded-[var(--radius-sharp)]",
++        "border-2 border-[var(--ink-300)] bg-[var(--paper-50)]",
++        "transition-colors duration-150",
++        "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        variant === "ink" &&
++          "data-[state=checked]:border-[var(--ink-700)] data-[state=checked]:bg-[var(--ink-700)] data-[state=checked]:text-white",
++        variant === "seal" &&
++          "data-[state=checked]:border-[var(--seal-500)] data-[state=checked]:bg-[var(--seal-500)] data-[state=checked]:text-white",
++        className
++      )}
++      {...props}
++    >
++      <CheckboxPrimitive.Indicator
++        data-slot="checkbox-v2-indicator"
++        className="flex items-center justify-center text-current"
++      >
++        {props.checked === "indeterminate" ? (
++          <Minus className="size-3" />
++        ) : (
++          <Check className="size-3" strokeWidth={3} />
++        )}
++      </CheckboxPrimitive.Indicator>
++    </CheckboxPrimitive.Root>
++  )
++}
+diff --git a/components/ui/v2/dialog.tsx b/components/ui/v2/dialog.tsx
+new file mode 100644
+index 0000000..cb2d097
+--- /dev/null
++++ b/components/ui/v2/dialog.tsx
+@@ -0,0 +1,144 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Dialog
++ *
++ * 视觉灵感：笔记本翻开（radius-card 12px）
++ *   - radial 米白底
++ *   - shadow-modal 重叠墨色阴影
++ *   - 入场用 InkMotion paper-fold（rotateY 微转）
++ *   - 关闭按钮 ghost icon-sm
++ */
++
++"use client"
++
++import * as React from "react"
++import * as DialogPrimitive from "@radix-ui/react-dialog"
++import { X } from "lucide-react"
++import { cn } from "@/lib/utils"
++
++export const DialogV2 = DialogPrimitive.Root
++export const DialogV2Trigger = DialogPrimitive.Trigger
++export const DialogV2Portal = DialogPrimitive.Portal
++export const DialogV2Close = DialogPrimitive.Close
++
++export function DialogV2Overlay({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
++  return (
++    <DialogPrimitive.Overlay
++      data-slot="dialog-v2-overlay"
++      className={cn(
++        "fixed inset-0 z-50",
++        "bg-[rgba(14,27,17,0.4)] backdrop-blur-[2px]",
++        "data-[state=open]:animate-in data-[state=closed]:animate-out",
++        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++        "duration-300 ease-[var(--ease-paper-fold)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DialogV2Content({
++  className,
++  children,
++  showCloseButton = true,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Content> & {
++  showCloseButton?: boolean
++}) {
++  return (
++    <DialogV2Portal>
++      <DialogV2Overlay />
++      <DialogPrimitive.Content
++        data-slot="dialog-v2-content"
++        className={cn(
++          "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
++          "w-[calc(100%-2rem)] max-w-lg",
++          "bg-[var(--paper-50)] text-[var(--ink-900)]",
++          "rounded-[var(--radius-card)] shadow-[var(--shadow-modal)]",
++          "p-6 grid gap-4",
++          "border border-[var(--paper-200)]",
++          "data-[state=open]:animate-in data-[state=closed]:animate-out",
++          "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++          "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
++          "duration-300 ease-[var(--ease-paper-fold)]",
++          className
++        )}
++        {...props}
++      >
++        {children}
++        {showCloseButton ? (
++          <DialogPrimitive.Close
++            className={cn(
++              "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center",
++              "rounded-full text-[var(--ink-500)]",
++              "transition-colors duration-200",
++              "hover:bg-[var(--paper-200)] hover:text-[var(--ink-800)]",
++              "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]"
++            )}
++          >
++            <X className="size-4" aria-hidden="true" />
++            <span className="sr-only">关闭</span>
++          </DialogPrimitive.Close>
++        ) : null}
++      </DialogPrimitive.Content>
++    </DialogV2Portal>
++  )
++}
++
++export function DialogV2Header({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="dialog-v2-header"
++      className={cn("flex flex-col gap-1.5 text-center sm:text-left", className)}
++      {...props}
++    />
++  )
++}
++
++export function DialogV2Footer({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="dialog-v2-footer"
++      className={cn(
++        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3 mt-2",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DialogV2Title({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Title>) {
++  return (
++    <DialogPrimitive.Title
++      data-slot="dialog-v2-title"
++      className={cn(
++        "font-[var(--font-display)] text-[20px] font-bold leading-tight tracking-[-0.01em] text-[var(--ink-800)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DialogV2Description({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Description>) {
++  return (
++    <DialogPrimitive.Description
++      data-slot="dialog-v2-description"
++      className={cn(
++        "font-[var(--font-sans-v2)] text-[14px] leading-[1.6] text-[var(--ink-500)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/dropdown-menu.tsx b/components/ui/v2/dropdown-menu.tsx
+new file mode 100644
+index 0000000..36138c5
+--- /dev/null
++++ b/components/ui/v2/dropdown-menu.tsx
+@@ -0,0 +1,228 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」DropdownMenu
++ */
++
++"use client"
++
++import * as React from "react"
++import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
++import { Check, ChevronRight, Circle } from "lucide-react"
++import { cn } from "@/lib/utils"
++
++export const DropdownMenuV2 = DropdownMenuPrimitive.Root
++export const DropdownMenuV2Trigger = DropdownMenuPrimitive.Trigger
++export const DropdownMenuV2Group = DropdownMenuPrimitive.Group
++export const DropdownMenuV2Portal = DropdownMenuPrimitive.Portal
++export const DropdownMenuV2Sub = DropdownMenuPrimitive.Sub
++export const DropdownMenuV2RadioGroup = DropdownMenuPrimitive.RadioGroup
++
++export function DropdownMenuV2Content({
++  className,
++  sideOffset = 6,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
++  return (
++    <DropdownMenuPrimitive.Portal>
++      <DropdownMenuPrimitive.Content
++        data-slot="dropdown-menu-v2-content"
++        sideOffset={sideOffset}
++        className={cn(
++          "z-50 min-w-[10rem] overflow-hidden p-1",
++          "rounded-[var(--radius-card)] bg-[var(--paper-50)] text-[var(--ink-900)]",
++          "border border-[var(--paper-200)] shadow-[var(--shadow-elevated)]",
++          "data-[state=open]:animate-in data-[state=closed]:animate-out",
++          "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++          "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
++          className
++        )}
++        {...props}
++      />
++    </DropdownMenuPrimitive.Portal>
++  )
++}
++
++export function DropdownMenuV2Item({
++  className,
++  inset,
++  variant = "default",
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
++  inset?: boolean
++  variant?: "default" | "destructive"
++}) {
++  return (
++    <DropdownMenuPrimitive.Item
++      data-slot="dropdown-menu-v2-item"
++      data-variant={variant}
++      className={cn(
++        "relative flex cursor-default select-none items-center gap-2",
++        "rounded-[var(--radius-soft)] px-2.5 py-2",
++        "font-[var(--font-sans-v2)] text-[14px] leading-none",
++        "outline-none transition-colors duration-150",
++        variant === "default" && "text-[var(--ink-800)]",
++        variant === "destructive" && "text-[var(--seal-600)]",
++        "data-[highlighted]:bg-[var(--ink-50)] data-[highlighted]:text-[var(--ink-900)]",
++        "data-[variant=destructive]:data-[highlighted]:bg-[var(--seal-50)] data-[variant=destructive]:data-[highlighted]:text-[var(--seal-600)]",
++        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
++        inset && "pl-8",
++        "[&_svg]:size-4 [&_svg]:shrink-0",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DropdownMenuV2CheckboxItem({
++  className,
++  children,
++  checked,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
++  return (
++    <DropdownMenuPrimitive.CheckboxItem
++      data-slot="dropdown-menu-v2-checkbox-item"
++      className={cn(
++        "relative flex cursor-default select-none items-center gap-2",
++        "rounded-[var(--radius-soft)] py-2 pl-8 pr-2",
++        "font-[var(--font-sans-v2)] text-[14px] text-[var(--ink-800)] leading-none",
++        "outline-none transition-colors duration-150",
++        "data-[highlighted]:bg-[var(--ink-50)]",
++        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
++        className
++      )}
++      checked={checked}
++      {...props}
++    >
++      <span className="absolute left-2 flex size-4 items-center justify-center">
++        <DropdownMenuPrimitive.ItemIndicator>
++          <Check className="size-3.5 text-[var(--ink-700)]" />
++        </DropdownMenuPrimitive.ItemIndicator>
++      </span>
++      {children}
++    </DropdownMenuPrimitive.CheckboxItem>
++  )
++}
++
++export function DropdownMenuV2RadioItem({
++  className,
++  children,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
++  return (
++    <DropdownMenuPrimitive.RadioItem
++      data-slot="dropdown-menu-v2-radio-item"
++      className={cn(
++        "relative flex cursor-default select-none items-center gap-2",
++        "rounded-[var(--radius-soft)] py-2 pl-8 pr-2",
++        "font-[var(--font-sans-v2)] text-[14px] text-[var(--ink-800)] leading-none",
++        "outline-none transition-colors duration-150",
++        "data-[highlighted]:bg-[var(--ink-50)]",
++        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
++        className
++      )}
++      {...props}
++    >
++      <span className="absolute left-2 flex size-4 items-center justify-center">
++        <DropdownMenuPrimitive.ItemIndicator>
++          <Circle className="size-2 fill-[var(--seal-500)] text-[var(--seal-500)]" />
++        </DropdownMenuPrimitive.ItemIndicator>
++      </span>
++      {children}
++    </DropdownMenuPrimitive.RadioItem>
++  )
++}
++
++export function DropdownMenuV2Label({
++  className,
++  inset,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & { inset?: boolean }) {
++  return (
++    <DropdownMenuPrimitive.Label
++      data-slot="dropdown-menu-v2-label"
++      className={cn(
++        "px-2.5 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-500)]",
++        inset && "pl-8",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DropdownMenuV2Separator({
++  className,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
++  return (
++    <DropdownMenuPrimitive.Separator
++      data-slot="dropdown-menu-v2-separator"
++      className={cn("my-1 h-px bg-[var(--paper-200)]", className)}
++      {...props}
++    />
++  )
++}
++
++export function DropdownMenuV2Shortcut({
++  className,
++  ...props
++}: React.ComponentProps<"span">) {
++  return (
++    <span
++      data-slot="dropdown-menu-v2-shortcut"
++      className={cn(
++        "ml-auto text-[12px] tracking-wide text-[var(--ink-400)] font-[var(--font-mono-v2)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function DropdownMenuV2SubTrigger({
++  className,
++  inset,
++  children,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & { inset?: boolean }) {
++  return (
++    <DropdownMenuPrimitive.SubTrigger
++      data-slot="dropdown-menu-v2-sub-trigger"
++      className={cn(
++        "flex cursor-default select-none items-center gap-2",
++        "rounded-[var(--radius-soft)] px-2.5 py-2",
++        "font-[var(--font-sans-v2)] text-[14px] text-[var(--ink-800)]",
++        "outline-none transition-colors duration-150",
++        "data-[highlighted]:bg-[var(--ink-50)]",
++        "data-[state=open]:bg-[var(--ink-50)]",
++        inset && "pl-8",
++        className
++      )}
++      {...props}
++    >
++      {children}
++      <ChevronRight className="ml-auto size-4 text-[var(--ink-500)]" />
++    </DropdownMenuPrimitive.SubTrigger>
++  )
++}
++
++export function DropdownMenuV2SubContent({
++  className,
++  ...props
++}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
++  return (
++    <DropdownMenuPrimitive.SubContent
++      data-slot="dropdown-menu-v2-sub-content"
++      className={cn(
++        "z-50 min-w-[8rem] overflow-hidden p-1",
++        "rounded-[var(--radius-card)] bg-[var(--paper-50)] text-[var(--ink-900)]",
++        "border border-[var(--paper-200)] shadow-[var(--shadow-elevated)]",
++        "data-[state=open]:animate-in data-[state=closed]:animate-out",
++        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/empty-state.tsx b/components/ui/v2/empty-state.tsx
+new file mode 100644
+index 0000000..2490696
+--- /dev/null
++++ b/components/ui/v2/empty-state.tsx
+@@ -0,0 +1,101 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」EmptyState
++ *
++ * 视觉：卷起的卷轴 SVG + 文字 + 可选 CTA
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++
++export interface EmptyStateV2Props {
++  title: string
++  description?: string
++  /** 自定义图标，不传则用默认卷轴 SVG */
++  icon?: React.ReactNode
++  action?: {
++    label: string
++    onClick?: () => void
++    href?: string
++  }
++  className?: string
++}
++
++function ScrollIcon() {
++  return (
++    <svg
++      width="48"
++      height="48"
++      viewBox="0 0 48 48"
++      fill="none"
++      xmlns="http://www.w3.org/2000/svg"
++      aria-hidden="true"
++      className="text-[var(--ink-400)]"
++    >
++      <rect
++        x="9"
++        y="11"
++        width="30"
++        height="26"
++        rx="2"
++        stroke="currentColor"
++        strokeWidth="1.5"
++        fill="var(--paper-100)"
++      />
++      <path
++        d="M14 18h20M14 24h20M14 30h13"
++        stroke="currentColor"
++        strokeWidth="1.5"
++        strokeLinecap="round"
++      />
++      <path
++        d="M9 11c-2 0-3 1-3 3s1 3 3 3M39 11c2 0 3 1 3 3s-1 3-3 3M9 31c-2 0-3 1-3 3s1 3 3 3M39 31c2 0 3 1 3 3s-1 3-3 3"
++        stroke="currentColor"
++        strokeWidth="1.5"
++        strokeLinecap="round"
++        fill="none"
++      />
++    </svg>
++  )
++}
++
++export function EmptyStateV2({
++  title,
++  description,
++  icon,
++  action,
++  className,
++}: EmptyStateV2Props) {
++  return (
++    <div
++      className={cn(
++        "flex flex-col items-center justify-center gap-3 px-6 py-16 text-center",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <div className="mb-2">{icon ?? <ScrollIcon />}</div>
++      <h3 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++        {title}
++      </h3>
++      {description ? (
++        <p className="max-w-md text-[14px] leading-[1.7] text-[var(--ink-500)]">
++          {description}
++        </p>
++      ) : null}
++      {action ? (
++        <div className="mt-3">
++          {action.href ? (
++            <ButtonV2 asChild variant="primary" size="sm">
++              <a href={action.href}>{action.label}</a>
++            </ButtonV2>
++          ) : (
++            <ButtonV2 variant="primary" size="sm" onClick={action.onClick}>
++              {action.label}
++            </ButtonV2>
++          )}
++        </div>
++      ) : null}
++    </div>
++  )
++}
+diff --git a/components/ui/v2/error-state.tsx b/components/ui/v2/error-state.tsx
+new file mode 100644
+index 0000000..d40851b
+--- /dev/null
++++ b/components/ui/v2/error-state.tsx
+@@ -0,0 +1,79 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」ErrorState
++ *
++ * 视觉：朱印红墨点 + 错误信息 + 可选重试
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++
++export interface ErrorStateV2Props {
++  title?: string
++  description?: string
++  onRetry?: () => void
++  retryLabel?: string
++  className?: string
++}
++
++function InkDot() {
++  return (
++    <svg
++      width="48"
++      height="48"
++      viewBox="0 0 48 48"
++      fill="none"
++      xmlns="http://www.w3.org/2000/svg"
++      aria-hidden="true"
++    >
++      <circle cx="24" cy="24" r="14" fill="var(--seal-500)" opacity="0.92" />
++      <circle cx="24" cy="24" r="14" fill="url(#ink-dot-grad)" />
++      <circle cx="32" cy="14" r="3" fill="var(--seal-500)" opacity="0.6" />
++      <circle cx="36" cy="34" r="2" fill="var(--seal-500)" opacity="0.5" />
++      <defs>
++        <radialGradient id="ink-dot-grad" cx="40%" cy="40%" r="60%">
++          <stop offset="0%" stopColor="var(--seal-300)" stopOpacity="0.8" />
++          <stop offset="100%" stopColor="var(--seal-600)" stopOpacity="1" />
++        </radialGradient>
++      </defs>
++    </svg>
++  )
++}
++
++export function ErrorStateV2({
++  title = "出错了",
++  description,
++  onRetry,
++  retryLabel = "重新加载",
++  className,
++}: ErrorStateV2Props) {
++  return (
++    <div
++      role="alert"
++      className={cn(
++        "flex flex-col items-center justify-center gap-3 px-6 py-12 text-center",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <div className="mb-2">
++        <InkDot />
++      </div>
++      <h3 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--seal-600)]">
++        {title}
++      </h3>
++      {description ? (
++        <p className="max-w-md text-[14px] leading-[1.7] text-[var(--ink-600)]">
++          {description}
++        </p>
++      ) : null}
++      {onRetry ? (
++        <div className="mt-3">
++          <ButtonV2 variant="outline" size="sm" onClick={onRetry}>
++            {retryLabel}
++          </ButtonV2>
++        </div>
++      ) : null}
++    </div>
++  )
++}
+diff --git a/components/ui/v2/index.ts b/components/ui/v2/index.ts
+new file mode 100644
+index 0000000..e723db9
+--- /dev/null
++++ b/components/ui/v2/index.ts
+@@ -0,0 +1,117 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」UI 组件总出口
++ *
++ * 用法：
++ *   import { ButtonV2, CardV2, InputV2 } from "@/components/ui/v2"
++ *
++ * 命名规约：所有 v2 组件统一加 `V2` 后缀，避免与老组件冲突。
++ */
++
++// 按钮
++export { ButtonV2, buttonV2Variants, type ButtonV2Props } from "./button"
++
++// 卡片
++export {
++  CardV2,
++  CardV2Header,
++  CardV2Title,
++  CardV2Description,
++  CardV2Content,
++  CardV2Footer,
++  cardV2Variants,
++  type CardV2Props,
++} from "./card"
++
++// 表单
++export { InputV2, type InputV2Props } from "./input"
++export { TextareaV2, type TextareaV2Props } from "./textarea"
++export { LabelV2 } from "./label"
++export { CheckboxV2 } from "./checkbox"
++export { RadioGroupV2, RadioGroupV2Item } from "./radio"
++export { SwitchV2 } from "./switch"
++export {
++  SelectV2,
++  SelectV2Group,
++  SelectV2Value,
++  SelectV2Trigger,
++  SelectV2Content,
++  SelectV2Item,
++  SelectV2Label,
++  SelectV2Separator,
++} from "./select"
++
++// 反馈
++export { AlertV2, AlertV2Title, AlertV2Description, type AlertV2Props } from "./alert"
++export { BadgeV2, badgeV2Variants, type BadgeV2Props } from "./badge"
++export { SkeletonV2 } from "./skeleton"
++export { ProgressV2 } from "./progress"
++export { LoadingStateV2, BrushDots, type LoadingStateV2Props } from "./loading-state"
++export { EmptyStateV2, type EmptyStateV2Props } from "./empty-state"
++export { ErrorStateV2, type ErrorStateV2Props } from "./error-state"
++export { SealStamp, ScoreSeal, sealVariants, type SealStampProps } from "./seal"
++
++// 布局 / 装饰
++export { SeparatorV2, type SeparatorV2Props } from "./separator"
++export { ScrollAreaV2, ScrollBarV2 } from "./scroll-area"
++
++// 弹层
++export {
++  DialogV2,
++  DialogV2Trigger,
++  DialogV2Portal,
++  DialogV2Close,
++  DialogV2Overlay,
++  DialogV2Content,
++  DialogV2Header,
++  DialogV2Footer,
++  DialogV2Title,
++  DialogV2Description,
++} from "./dialog"
++export {
++  SheetV2,
++  SheetV2Trigger,
++  SheetV2Close,
++  SheetV2Portal,
++  SheetV2Overlay,
++  SheetV2Content,
++  SheetV2Header,
++  SheetV2Footer,
++  SheetV2Title,
++  SheetV2Description,
++  type SheetV2ContentProps,
++} from "./sheet"
++export {
++  PopoverV2,
++  PopoverV2Trigger,
++  PopoverV2Anchor,
++  PopoverV2Content,
++} from "./popover"
++export {
++  TooltipV2Provider,
++  TooltipV2,
++  TooltipV2Trigger,
++  TooltipV2Content,
++} from "./tooltip"
++
++// 菜单 / 导航
++export { TabsV2, TabsV2List, TabsV2Trigger, TabsV2Content } from "./tabs"
++export {
++  DropdownMenuV2,
++  DropdownMenuV2Trigger,
++  DropdownMenuV2Group,
++  DropdownMenuV2Portal,
++  DropdownMenuV2Sub,
++  DropdownMenuV2RadioGroup,
++  DropdownMenuV2Content,
++  DropdownMenuV2Item,
++  DropdownMenuV2CheckboxItem,
++  DropdownMenuV2RadioItem,
++  DropdownMenuV2Label,
++  DropdownMenuV2Separator,
++  DropdownMenuV2Shortcut,
++  DropdownMenuV2SubTrigger,
++  DropdownMenuV2SubContent,
++} from "./dropdown-menu"
++
++// 头像
++export { AvatarV2, AvatarV2Image, AvatarV2Fallback } from "./avatar"
+diff --git a/components/ui/v2/input.tsx b/components/ui/v2/input.tsx
+new file mode 100644
+index 0000000..495c106
+--- /dev/null
++++ b/components/ui/v2/input.tsx
+@@ -0,0 +1,43 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Input
++ *
++ * 视觉灵感：学生考卷答题框
++ *   - radius-soft (4px)
++ *   - paper-100 底色
++ *   - focus 时墨绿描边 + shadow-focus-ink 光晕
++ *   - error 状态用朱印红墨点
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++
++export interface InputV2Props extends React.ComponentProps<"input"> {
++  /** 设为 true 时显示 invalid 视觉（朱印红边） */
++  invalid?: boolean
++}
++
++export function InputV2({ className, type, invalid, ...props }: InputV2Props) {
++  return (
++    <input
++      type={type}
++      data-slot="input-v2"
++      aria-invalid={invalid || undefined}
++      className={cn(
++        "h-10 w-full min-w-0 rounded-[var(--radius-soft)] px-3 py-2",
++        "font-[var(--font-sans-v2)] text-[15px] text-[var(--ink-900)] leading-normal",
++        "bg-[var(--paper-100)] border border-[var(--paper-300)]",
++        "placeholder:text-[var(--ink-400)]",
++        "selection:bg-[var(--ink-200)] selection:text-[var(--ink-900)]",
++        "outline-none transition-[border-color,background-color,box-shadow] duration-200",
++        "hover:border-[var(--ink-300)]",
++        "focus-visible:bg-white focus-visible:border-[var(--ink-600)] focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "aria-[invalid=true]:border-[var(--seal-500)] aria-[invalid=true]:[box-shadow:0_0_0_3px_var(--seal-100)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        // 文件输入框继承字体
++        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-[var(--ink-700)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/label.tsx b/components/ui/v2/label.tsx
+new file mode 100644
+index 0000000..002e479
+--- /dev/null
++++ b/components/ui/v2/label.tsx
+@@ -0,0 +1,28 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Label
++ */
++
++"use client"
++
++import * as React from "react"
++import * as LabelPrimitive from "@radix-ui/react-label"
++import { cn } from "@/lib/utils"
++
++export function LabelV2({
++  className,
++  ...props
++}: React.ComponentProps<typeof LabelPrimitive.Root>) {
++  return (
++    <LabelPrimitive.Root
++      data-slot="label-v2"
++      className={cn(
++        "flex items-center gap-2 text-[14px] leading-none font-medium select-none",
++        "font-[var(--font-sans-v2)] text-[var(--ink-700)]",
++        "group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50",
++        "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/loading-state.tsx b/components/ui/v2/loading-state.tsx
+new file mode 100644
+index 0000000..68e8195
+--- /dev/null
++++ b/components/ui/v2/loading-state.tsx
+@@ -0,0 +1,77 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」LoadingState
++ *
++ * 主加载组件：毛笔横扫一笔 + 可选文字
++ * 子组件：BrushDots（更小的内联加载，用在按钮里）
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { InkBrush } from "@/components/motion/InkMotion"
++
++export interface LoadingStateV2Props {
++  label?: string
++  className?: string
++  size?: "sm" | "md" | "lg"
++}
++
++export function LoadingStateV2({
++  label = "AI 正在思考...",
++  className,
++  size = "md",
++}: LoadingStateV2Props) {
++  const brushSize = size === "sm" ? "h-4 w-16" : size === "lg" ? "h-6 w-32" : "h-5 w-24"
++  const textSize = size === "sm" ? "text-[12px]" : size === "lg" ? "text-[15px]" : "text-[13px]"
++  return (
++    <div
++      role="status"
++      aria-live="polite"
++      className={cn(
++        "flex flex-col items-center justify-center gap-3 px-6 py-10",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <div className="text-[var(--ink-500)]">
++        <InkBrush className={brushSize} />
++      </div>
++      {label ? (
++        <p className={cn("text-[var(--ink-500)] tracking-[0.05em]", textSize)}>
++          {label}
++        </p>
++      ) : null}
++    </div>
++  )
++}
++
++/**
++ * 内联加载小点（用在 Button 内 / 输入区域内）
++ * 三个墨点逐个闪烁
++ */
++export function BrushDots({
++  className,
++  color = "currentColor",
++}: {
++  className?: string
++  color?: string
++}) {
++  return (
++    <span
++      className={cn("inline-flex items-center gap-1", className)}
++      aria-label="加载中"
++      role="status"
++    >
++      {[0, 0.2, 0.4].map((delay, i) => (
++        <span
++          key={i}
++          className="block size-1.5 rounded-full"
++          style={{
++            backgroundColor: color,
++            animation: "code-blink 0.9s ease-in-out infinite",
++            animationDelay: `${delay}s`,
++          }}
++        />
++      ))}
++    </span>
++  )
++}
+diff --git a/components/ui/v2/popover.tsx b/components/ui/v2/popover.tsx
+new file mode 100644
+index 0000000..59c038b
+--- /dev/null
++++ b/components/ui/v2/popover.tsx
+@@ -0,0 +1,41 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Popover
++ */
++
++"use client"
++
++import * as React from "react"
++import * as PopoverPrimitive from "@radix-ui/react-popover"
++import { cn } from "@/lib/utils"
++
++export const PopoverV2 = PopoverPrimitive.Root
++export const PopoverV2Trigger = PopoverPrimitive.Trigger
++export const PopoverV2Anchor = PopoverPrimitive.Anchor
++
++export function PopoverV2Content({
++  className,
++  align = "center",
++  sideOffset = 6,
++  ...props
++}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
++  return (
++    <PopoverPrimitive.Portal>
++      <PopoverPrimitive.Content
++        data-slot="popover-v2-content"
++        align={align}
++        sideOffset={sideOffset}
++        className={cn(
++          "z-50 w-72 p-4 outline-none",
++          "rounded-[var(--radius-card)] bg-[var(--paper-50)] text-[var(--ink-900)]",
++          "border border-[var(--paper-200)] shadow-[var(--shadow-elevated)]",
++          "font-[var(--font-sans-v2)]",
++          "data-[state=open]:animate-in data-[state=closed]:animate-out",
++          "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++          "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
++          className
++        )}
++        {...props}
++      />
++    </PopoverPrimitive.Portal>
++  )
++}
+diff --git a/components/ui/v2/progress.tsx b/components/ui/v2/progress.tsx
+new file mode 100644
+index 0000000..a972efd
+--- /dev/null
++++ b/components/ui/v2/progress.tsx
+@@ -0,0 +1,34 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Progress
++ *
++ * 灵感：毛笔从左到右扫过纸面
++ */
++
++"use client"
++
++import * as React from "react"
++import * as ProgressPrimitive from "@radix-ui/react-progress"
++import { cn } from "@/lib/utils"
++
++export function ProgressV2({
++  className,
++  value,
++  ...props
++}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
++  return (
++    <ProgressPrimitive.Root
++      data-slot="progress-v2"
++      className={cn(
++        "relative h-2 w-full overflow-hidden rounded-full bg-[var(--paper-200)]",
++        className
++      )}
++      {...props}
++    >
++      <ProgressPrimitive.Indicator
++        data-slot="progress-v2-indicator"
++        className="h-full w-full flex-1 rounded-full bg-[var(--ink-600)] transition-transform duration-500 ease-[var(--ease-ink-spread)]"
++        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
++      />
++    </ProgressPrimitive.Root>
++  )
++}
+diff --git a/components/ui/v2/radio.tsx b/components/ui/v2/radio.tsx
+new file mode 100644
+index 0000000..6bc9fbc
+--- /dev/null
++++ b/components/ui/v2/radio.tsx
+@@ -0,0 +1,50 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Radio Group
++ */
++
++"use client"
++
++import * as React from "react"
++import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
++import { cn } from "@/lib/utils"
++
++export function RadioGroupV2({
++  className,
++  ...props
++}: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
++  return (
++    <RadioGroupPrimitive.Root
++      data-slot="radio-group-v2"
++      className={cn("grid gap-2", className)}
++      {...props}
++    />
++  )
++}
++
++export function RadioGroupV2Item({
++  className,
++  ...props
++}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
++  return (
++    <RadioGroupPrimitive.Item
++      data-slot="radio-group-v2-item"
++      className={cn(
++        "relative aspect-square size-4 shrink-0",
++        "rounded-full border-2 border-[var(--ink-300)] bg-[var(--paper-50)]",
++        "transition-colors duration-150",
++        "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "data-[state=checked]:border-[var(--seal-500)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        className
++      )}
++      {...props}
++    >
++      <RadioGroupPrimitive.Indicator
++        className="flex items-center justify-center"
++        data-slot="radio-group-v2-indicator"
++      >
++        <span className="block size-2 rounded-full bg-[var(--seal-500)]" />
++      </RadioGroupPrimitive.Indicator>
++    </RadioGroupPrimitive.Item>
++  )
++}
+diff --git a/components/ui/v2/scroll-area.tsx b/components/ui/v2/scroll-area.tsx
+new file mode 100644
+index 0000000..1e0c515
+--- /dev/null
++++ b/components/ui/v2/scroll-area.tsx
+@@ -0,0 +1,57 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」ScrollArea
++ */
++
++"use client"
++
++import * as React from "react"
++import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
++import { cn } from "@/lib/utils"
++
++export function ScrollAreaV2({
++  className,
++  children,
++  ...props
++}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
++  return (
++    <ScrollAreaPrimitive.Root
++      data-slot="scroll-area-v2"
++      className={cn("relative", className)}
++      {...props}
++    >
++      <ScrollAreaPrimitive.Viewport
++        data-slot="scroll-area-v2-viewport"
++        className="size-full rounded-[inherit] outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]"
++      >
++        {children}
++      </ScrollAreaPrimitive.Viewport>
++      <ScrollBarV2 />
++      <ScrollAreaPrimitive.Corner />
++    </ScrollAreaPrimitive.Root>
++  )
++}
++
++export function ScrollBarV2({
++  className,
++  orientation = "vertical",
++  ...props
++}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
++  return (
++    <ScrollAreaPrimitive.ScrollAreaScrollbar
++      data-slot="scroll-area-v2-scrollbar"
++      orientation={orientation}
++      className={cn(
++        "flex touch-none select-none transition-colors",
++        orientation === "vertical" && "h-full w-1.5 border-l border-l-transparent p-[1px]",
++        orientation === "horizontal" && "h-1.5 flex-col border-t border-t-transparent p-[1px]",
++        className
++      )}
++      {...props}
++    >
++      <ScrollAreaPrimitive.ScrollAreaThumb
++        data-slot="scroll-area-v2-thumb"
++        className="relative flex-1 rounded-full bg-[var(--paper-300)] hover:bg-[var(--ink-300)] transition-colors"
++      />
++    </ScrollAreaPrimitive.ScrollAreaScrollbar>
++  )
++}
+diff --git a/components/ui/v2/seal.tsx b/components/ui/v2/seal.tsx
+new file mode 100644
+index 0000000..bc4d079
+--- /dev/null
++++ b/components/ui/v2/seal.tsx
+@@ -0,0 +1,143 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」朱印章组件
++ *
++ * 应用场景：
++ *   - 已批阅 / 已审核 角标
++ *   - 评分数字红印（"8.5/10"）
++ *   - 成就章
++ *
++ * 风格：
++ *   - 红方框（朱印）：宋体竖排或横排，朱印红边 + 朱印红字
++ *   - 圆形章：圆形红印（用于评分头像角标）
++ *
++ * 变体：rect / circle / score
++ */
++
++import * as React from "react"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const sealVariants = cva(
++  [
++    "inline-flex items-center justify-center",
++    "font-[var(--font-display)] font-bold",
++    "border-2",
++    "transition-all duration-200",
++  ].join(" "),
++  {
++    variants: {
++      shape: {
++        rect: "rounded-[var(--radius-sharp)]",
++        circle: "rounded-full",
++        score: "rounded-full aspect-square",
++      },
++      orientation: {
++        horizontal: "",
++        vertical: "[writing-mode:vertical-rl]",
++      },
++      size: {
++        xs: "size-8 text-[10px]",
++        sm: "size-12 text-[12px]",
++        md: "size-16 text-[14px]",
++        lg: "size-20 text-[16px]",
++        // score sizes 不限制 size，由调用方控制
++        none: "",
++      },
++      tone: {
++        seal: cn(
++          "border-[var(--seal-500)] text-[var(--seal-500)]",
++          "bg-[var(--seal-50)]/80",
++          "shadow-[0_2px_0_var(--seal-500)]"
++        ),
++        ink: cn(
++          "border-[var(--ink-700)] text-[var(--ink-700)]",
++          "bg-[var(--ink-50)]/80"
++        ),
++      },
++    },
++    defaultVariants: {
++      shape: "rect",
++      orientation: "vertical",
++      size: "md",
++      tone: "seal",
++    },
++  }
++)
++
++export interface SealStampProps
++  extends Omit<React.ComponentProps<"div">, "color">,
++    VariantProps<typeof sealVariants> {
++  /** 印章文字（建议 2-4 字） */
++  label?: string
++  /** 倾斜角度（度），默认 -6 */
++  rotate?: number
++}
++
++export function SealStamp({
++  className,
++  shape,
++  orientation,
++  size,
++  tone,
++  label,
++  rotate = -6,
++  children,
++  style,
++  ...props
++}: SealStampProps) {
++  return (
++    <div
++      className={cn(sealVariants({ shape, orientation, size, tone }), className)}
++      style={{
++        transform: `rotate(${rotate}deg)`,
++        letterSpacing: orientation === "vertical" ? "0.2em" : "0.05em",
++        ...style,
++      }}
++      aria-label={typeof label === "string" ? label : undefined}
++      {...props}
++    >
++      {children ?? label}
++    </div>
++  )
++}
++
++/**
++ * 评分朱印（圆形大印）
++ * 用法：<ScoreSeal score="8.5" total="10" />
++ */
++export function ScoreSeal({
++  score,
++  total,
++  size = 80,
++  className,
++}: {
++  score: string | number
++  total?: string | number
++  size?: number
++  className?: string
++}) {
++  return (
++    <div
++      className={cn(
++        "relative inline-flex flex-col items-center justify-center",
++        "rounded-full border-2 border-[var(--seal-500)]",
++        "bg-[var(--seal-50)]/70 shadow-[0_2px_0_var(--seal-500)]",
++        "font-[var(--font-display)]",
++        className
++      )}
++      style={{ width: size, height: size, transform: "rotate(-4deg)" }}
++      aria-label={`评分 ${score}${total ? ` / ${total}` : ""}`}
++    >
++      <span className="font-mono text-[var(--seal-600)] font-bold leading-none" style={{ fontSize: size * 0.32 }}>
++        {score}
++      </span>
++      {total !== undefined ? (
++        <span className="font-mono text-[var(--seal-500)] leading-none mt-1" style={{ fontSize: size * 0.14 }}>
++          / {total}
++        </span>
++      ) : null}
++    </div>
++  )
++}
++
++export { sealVariants }
+diff --git a/components/ui/v2/select.tsx b/components/ui/v2/select.tsx
+new file mode 100644
+index 0000000..eb070ba
+--- /dev/null
++++ b/components/ui/v2/select.tsx
+@@ -0,0 +1,153 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Select
++ */
++
++"use client"
++
++import * as React from "react"
++import * as SelectPrimitive from "@radix-ui/react-select"
++import { Check, ChevronDown, ChevronUp } from "lucide-react"
++import { cn } from "@/lib/utils"
++
++export const SelectV2 = SelectPrimitive.Root
++export const SelectV2Group = SelectPrimitive.Group
++export const SelectV2Value = SelectPrimitive.Value
++
++export function SelectV2Trigger({
++  className,
++  children,
++  size = "default",
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
++  size?: "sm" | "default" | "lg"
++}) {
++  return (
++    <SelectPrimitive.Trigger
++      data-slot="select-v2-trigger"
++      className={cn(
++        "flex w-full items-center justify-between gap-2",
++        "rounded-[var(--radius-soft)] px-3",
++        "font-[var(--font-sans-v2)] text-[15px] text-[var(--ink-900)]",
++        "bg-[var(--paper-100)] border border-[var(--paper-300)]",
++        "outline-none transition-[border-color,background-color,box-shadow] duration-200",
++        "hover:border-[var(--ink-300)]",
++        "focus-visible:bg-white focus-visible:border-[var(--ink-600)] focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "data-[placeholder]:text-[var(--ink-400)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        size === "sm" && "h-9 text-[14px]",
++        size === "default" && "h-10",
++        size === "lg" && "h-12",
++        className
++      )}
++      {...props}
++    >
++      {children}
++      <SelectPrimitive.Icon asChild>
++        <ChevronDown className="size-4 text-[var(--ink-500)]" aria-hidden="true" />
++      </SelectPrimitive.Icon>
++    </SelectPrimitive.Trigger>
++  )
++}
++
++export function SelectV2Content({
++  className,
++  children,
++  position = "popper",
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Content>) {
++  return (
++    <SelectPrimitive.Portal>
++      <SelectPrimitive.Content
++        data-slot="select-v2-content"
++        position={position}
++        className={cn(
++          "relative z-50 max-h-[--radix-select-content-available-height]",
++          "min-w-[8rem] overflow-hidden",
++          "rounded-[var(--radius-card)] bg-[var(--paper-50)] text-[var(--ink-900)]",
++          "border border-[var(--paper-200)] shadow-[var(--shadow-elevated)]",
++          "data-[state=open]:animate-in data-[state=closed]:animate-out",
++          "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++          "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
++          position === "popper" &&
++            "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
++          className
++        )}
++        {...props}
++      >
++        <SelectPrimitive.ScrollUpButton className="flex h-6 cursor-default items-center justify-center text-[var(--ink-500)]">
++          <ChevronUp className="size-4" />
++        </SelectPrimitive.ScrollUpButton>
++        <SelectPrimitive.Viewport
++          className={cn(
++            "p-1",
++            position === "popper" &&
++              "h-[--radix-select-trigger-height] w-full min-w-[--radix-select-trigger-width]"
++          )}
++        >
++          {children}
++        </SelectPrimitive.Viewport>
++        <SelectPrimitive.ScrollDownButton className="flex h-6 cursor-default items-center justify-center text-[var(--ink-500)]">
++          <ChevronDown className="size-4" />
++        </SelectPrimitive.ScrollDownButton>
++      </SelectPrimitive.Content>
++    </SelectPrimitive.Portal>
++  )
++}
++
++export function SelectV2Item({
++  className,
++  children,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Item>) {
++  return (
++    <SelectPrimitive.Item
++      data-slot="select-v2-item"
++      className={cn(
++        "relative flex w-full cursor-default select-none items-center gap-2",
++        "rounded-[var(--radius-soft)] px-2.5 py-2",
++        "font-[var(--font-sans-v2)] text-[14px] text-[var(--ink-800)] leading-none",
++        "outline-none transition-colors duration-150",
++        "data-[highlighted]:bg-[var(--ink-50)] data-[highlighted]:text-[var(--ink-900)]",
++        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
++        className
++      )}
++      {...props}
++    >
++      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
++      <span className="ml-auto flex h-3.5 w-3.5 items-center justify-center">
++        <SelectPrimitive.ItemIndicator>
++          <Check className="size-4 text-[var(--ink-700)]" />
++        </SelectPrimitive.ItemIndicator>
++      </span>
++    </SelectPrimitive.Item>
++  )
++}
++
++export function SelectV2Label({
++  className,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Label>) {
++  return (
++    <SelectPrimitive.Label
++      data-slot="select-v2-label"
++      className={cn(
++        "px-2.5 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-500)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function SelectV2Separator({
++  className,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
++  return (
++    <SelectPrimitive.Separator
++      data-slot="select-v2-separator"
++      className={cn("-mx-1 my-1 h-px bg-[var(--paper-200)]", className)}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/separator.tsx b/components/ui/v2/separator.tsx
+new file mode 100644
+index 0000000..bdec2e8
+--- /dev/null
++++ b/components/ui/v2/separator.tsx
+@@ -0,0 +1,54 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Separator
++ *
++ * 三种风格：
++ *   - default 普通分隔线（paper-200）
++ *   - ink     墨色实线（重点分隔）
++ *   - dashed  虚线（柔和分组）
++ */
++
++"use client"
++
++import * as React from "react"
++import * as SeparatorPrimitive from "@radix-ui/react-separator"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++const separatorVariants = cva("shrink-0", {
++  variants: {
++    variant: {
++      default: "bg-[var(--paper-200)]",
++      ink: "bg-[var(--ink-300)]",
++      dashed: "bg-transparent border-dashed border-[var(--paper-300)]",
++    },
++  },
++  defaultVariants: { variant: "default" },
++})
++
++export interface SeparatorV2Props
++  extends React.ComponentProps<typeof SeparatorPrimitive.Root>,
++    VariantProps<typeof separatorVariants> {}
++
++export function SeparatorV2({
++  className,
++  variant,
++  orientation = "horizontal",
++  decorative = true,
++  ...props
++}: SeparatorV2Props) {
++  return (
++    <SeparatorPrimitive.Root
++      data-slot="separator-v2"
++      decorative={decorative}
++      orientation={orientation}
++      className={cn(
++        separatorVariants({ variant }),
++        orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
++        variant === "dashed" &&
++          (orientation === "horizontal" ? "border-t" : "border-l"),
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/sheet.tsx b/components/ui/v2/sheet.tsx
+new file mode 100644
+index 0000000..48000d7
+--- /dev/null
++++ b/components/ui/v2/sheet.tsx
+@@ -0,0 +1,150 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Sheet（侧拉抽屉）
++ */
++
++"use client"
++
++import * as React from "react"
++import * as SheetPrimitive from "@radix-ui/react-dialog"
++import { X } from "lucide-react"
++import { cva, type VariantProps } from "class-variance-authority"
++import { cn } from "@/lib/utils"
++
++export const SheetV2 = SheetPrimitive.Root
++export const SheetV2Trigger = SheetPrimitive.Trigger
++export const SheetV2Close = SheetPrimitive.Close
++export const SheetV2Portal = SheetPrimitive.Portal
++
++export function SheetV2Overlay({
++  className,
++  ...props
++}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
++  return (
++    <SheetPrimitive.Overlay
++      data-slot="sheet-v2-overlay"
++      className={cn(
++        "fixed inset-0 z-50 bg-[rgba(14,27,17,0.4)] backdrop-blur-[2px]",
++        "data-[state=open]:animate-in data-[state=closed]:animate-out",
++        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
++        "duration-300",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++const sheetContentVariants = cva(
++  cn(
++    "fixed z-50 flex flex-col gap-4 bg-[var(--paper-50)] text-[var(--ink-900)]",
++    "shadow-[var(--shadow-modal)] border-[var(--paper-200)]",
++    "data-[state=open]:animate-in data-[state=closed]:animate-out",
++    "duration-400 ease-[var(--ease-paper-fold)]"
++  ),
++  {
++    variants: {
++      side: {
++        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
++        bottom:
++          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
++        left: "inset-y-0 left-0 h-full w-3/4 max-w-sm border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
++        right:
++          "inset-y-0 right-0 h-full w-3/4 max-w-sm border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
++      },
++    },
++    defaultVariants: { side: "right" },
++  }
++)
++
++export interface SheetV2ContentProps
++  extends React.ComponentProps<typeof SheetPrimitive.Content>,
++    VariantProps<typeof sheetContentVariants> {
++  showCloseButton?: boolean
++}
++
++export function SheetV2Content({
++  className,
++  children,
++  side = "right",
++  showCloseButton = true,
++  ...props
++}: SheetV2ContentProps) {
++  return (
++    <SheetV2Portal>
++      <SheetV2Overlay />
++      <SheetPrimitive.Content
++        data-slot="sheet-v2-content"
++        className={cn(sheetContentVariants({ side }), className)}
++        {...props}
++      >
++        {children}
++        {showCloseButton ? (
++          <SheetPrimitive.Close
++            className={cn(
++              "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center",
++              "rounded-full text-[var(--ink-500)]",
++              "transition-colors duration-200",
++              "hover:bg-[var(--paper-200)] hover:text-[var(--ink-800)]",
++              "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]"
++            )}
++          >
++            <X className="size-4" aria-hidden="true" />
++            <span className="sr-only">关闭</span>
++          </SheetPrimitive.Close>
++        ) : null}
++      </SheetPrimitive.Content>
++    </SheetV2Portal>
++  )
++}
++
++export function SheetV2Header({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="sheet-v2-header"
++      className={cn("flex flex-col gap-1.5 px-6 pt-6", className)}
++      {...props}
++    />
++  )
++}
++
++export function SheetV2Footer({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="sheet-v2-footer"
++      className={cn("mt-auto flex flex-col gap-2 px-6 pb-6", className)}
++      {...props}
++    />
++  )
++}
++
++export function SheetV2Title({
++  className,
++  ...props
++}: React.ComponentProps<typeof SheetPrimitive.Title>) {
++  return (
++    <SheetPrimitive.Title
++      data-slot="sheet-v2-title"
++      className={cn(
++        "font-[var(--font-display)] text-[20px] font-bold leading-tight tracking-[-0.01em] text-[var(--ink-800)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function SheetV2Description({
++  className,
++  ...props
++}: React.ComponentProps<typeof SheetPrimitive.Description>) {
++  return (
++    <SheetPrimitive.Description
++      data-slot="sheet-v2-description"
++      className={cn(
++        "font-[var(--font-sans-v2)] text-[14px] leading-[1.6] text-[var(--ink-500)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/skeleton.tsx b/components/ui/v2/skeleton.tsx
+new file mode 100644
+index 0000000..b26bf68
+--- /dev/null
++++ b/components/ui/v2/skeleton.tsx
+@@ -0,0 +1,22 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Skeleton
++ *
++ * 不用闪烁亮光 shimmer，用墨色脉冲（更克制）。
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++
++export function SkeletonV2({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="skeleton-v2"
++      className={cn(
++        "animate-pulse rounded-[var(--radius-soft)]",
++        "bg-[var(--paper-200)]/60",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/switch.tsx b/components/ui/v2/switch.tsx
+new file mode 100644
+index 0000000..24c3511
+--- /dev/null
++++ b/components/ui/v2/switch.tsx
+@@ -0,0 +1,42 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Switch
++ *
++ * 关闭态 paper-200，开启态 ink-600；滑块米白。
++ */
++
++"use client"
++
++import * as React from "react"
++import * as SwitchPrimitive from "@radix-ui/react-switch"
++import { cn } from "@/lib/utils"
++
++export function SwitchV2({
++  className,
++  ...props
++}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
++  return (
++    <SwitchPrimitive.Root
++      data-slot="switch-v2"
++      className={cn(
++        "peer inline-flex h-6 w-11 shrink-0 items-center rounded-full",
++        "border border-transparent transition-colors duration-200",
++        "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        "data-[state=unchecked]:bg-[var(--paper-300)]",
++        "data-[state=checked]:bg-[var(--ink-600)]",
++        className
++      )}
++      {...props}
++    >
++      <SwitchPrimitive.Thumb
++        data-slot="switch-v2-thumb"
++        className={cn(
++          "pointer-events-none block size-5 rounded-full bg-white shadow-[0_1px_3px_rgba(14,27,17,0.3)]",
++          "transition-transform duration-200 ease-[var(--ease-paper-fold)]",
++          "data-[state=unchecked]:translate-x-0.5",
++          "data-[state=checked]:translate-x-[1.375rem]"
++        )}
++      />
++    </SwitchPrimitive.Root>
++  )
++}
+diff --git a/components/ui/v2/tabs.tsx b/components/ui/v2/tabs.tsx
+new file mode 100644
+index 0000000..1c04817
+--- /dev/null
++++ b/components/ui/v2/tabs.tsx
+@@ -0,0 +1,69 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Tabs
++ *
++ * 视觉：墨色下划线，不用胶囊背景（更克制）。
++ */
++
++"use client"
++
++import * as React from "react"
++import * as TabsPrimitive from "@radix-ui/react-tabs"
++import { cn } from "@/lib/utils"
++
++export const TabsV2 = TabsPrimitive.Root
++
++export function TabsV2List({
++  className,
++  ...props
++}: React.ComponentProps<typeof TabsPrimitive.List>) {
++  return (
++    <TabsPrimitive.List
++      data-slot="tabs-v2-list"
++      className={cn(
++        "inline-flex items-center gap-2 border-b border-[var(--paper-200)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function TabsV2Trigger({
++  className,
++  ...props
++}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
++  return (
++    <TabsPrimitive.Trigger
++      data-slot="tabs-v2-trigger"
++      className={cn(
++        "relative px-3 py-2 text-[14px] font-medium leading-none",
++        "text-[var(--ink-500)] transition-colors duration-200",
++        "hover:text-[var(--ink-700)]",
++        "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        // active state — 墨色下划线
++        "data-[state=active]:text-[var(--ink-800)]",
++        "data-[state=active]:font-semibold",
++        "after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px]",
++        "after:bg-transparent after:transition-colors after:duration-200",
++        "data-[state=active]:after:bg-[var(--ink-700)]",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export function TabsV2Content({
++  className,
++  ...props
++}: React.ComponentProps<typeof TabsPrimitive.Content>) {
++  return (
++    <TabsPrimitive.Content
++      data-slot="tabs-v2-content"
++      className={cn("mt-4 outline-none", className)}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/textarea.tsx b/components/ui/v2/textarea.tsx
+new file mode 100644
+index 0000000..7c2c9e0
+--- /dev/null
++++ b/components/ui/v2/textarea.tsx
+@@ -0,0 +1,35 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Textarea
++ * 视觉同 InputV2，支持 field-sizing-content 自适应高度
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++
++export interface TextareaV2Props extends React.ComponentProps<"textarea"> {
++  invalid?: boolean
++}
++
++export function TextareaV2({ className, invalid, ...props }: TextareaV2Props) {
++  return (
++    <textarea
++      data-slot="textarea-v2"
++      aria-invalid={invalid || undefined}
++      className={cn(
++        "flex min-h-24 w-full rounded-[var(--radius-soft)] px-3 py-2",
++        "font-[var(--font-sans-v2)] text-[15px] text-[var(--ink-900)] leading-[1.7]",
++        "bg-[var(--paper-100)] border border-[var(--paper-300)]",
++        "placeholder:text-[var(--ink-400)]",
++        "outline-none transition-[border-color,background-color,box-shadow] duration-200",
++        "field-sizing-content",
++        "hover:border-[var(--ink-300)]",
++        "focus-visible:bg-white focus-visible:border-[var(--ink-600)] focus-visible:[box-shadow:var(--shadow-focus-ink)]",
++        "aria-[invalid=true]:border-[var(--seal-500)] aria-[invalid=true]:[box-shadow:0_0_0_3px_var(--seal-100)]",
++        "disabled:cursor-not-allowed disabled:opacity-50",
++        "resize-y",
++        className
++      )}
++      {...props}
++    />
++  )
++}
+diff --git a/components/ui/v2/tooltip.tsx b/components/ui/v2/tooltip.tsx
+new file mode 100644
+index 0000000..f234972
+--- /dev/null
++++ b/components/ui/v2/tooltip.tsx
+@@ -0,0 +1,40 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」Tooltip
++ */
++
++"use client"
++
++import * as React from "react"
++import * as TooltipPrimitive from "@radix-ui/react-tooltip"
++import { cn } from "@/lib/utils"
++
++export const TooltipV2Provider = TooltipPrimitive.Provider
++export const TooltipV2 = TooltipPrimitive.Root
++export const TooltipV2Trigger = TooltipPrimitive.Trigger
++
++export function TooltipV2Content({
++  className,
++  sideOffset = 6,
++  ...props
++}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
++  return (
++    <TooltipPrimitive.Portal>
++      <TooltipPrimitive.Content
++        data-slot="tooltip-v2-content"
++        sideOffset={sideOffset}
++        className={cn(
++          "z-50 overflow-hidden rounded-[var(--radius-soft)] px-3 py-1.5",
++          "bg-[var(--ink-900)] text-[var(--paper-50)]",
++          "font-[var(--font-sans-v2)] text-[12px] font-medium leading-[1.5]",
++          "shadow-[var(--shadow-elevated)]",
++          "animate-in fade-in-0 zoom-in-95",
++          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
++          "data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
++          "data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2",
++          className
++        )}
++        {...props}
++      />
++    </TooltipPrimitive.Portal>
++  )
++}
+-- 
+2.50.1
+

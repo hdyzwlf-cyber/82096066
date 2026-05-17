@@ -1,0 +1,1933 @@
+From e242c96be3636fd48edcba10ef1674325e24c65d Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sat, 16 May 2026 19:10:01 +0000
+Subject: [PATCH 09/12] feat(chat-v2): chat workspace + 5 artifact templates +
+ 22-agent registry
+
+---
+ components/chat/v2/AssistantMessageV2.tsx     | 169 ++++++++++++
+ components/chat/v2/ChatComposerV2.tsx         | 154 +++++++++++
+ components/chat/v2/ChatWorkspaceV2.tsx        | 158 +++++++++++
+ components/chat/v2/ModelDrawerV2.tsx          | 177 ++++++++++++
+ components/chat/v2/UserMessageV2.tsx          |  77 ++++++
+ components/chat/v2/agent-registry.ts          | 259 ++++++++++++++++++
+ components/chat/v2/index.ts                   |  17 ++
+ .../chat/v2/templates/EssayReviewTemplate.tsx | 199 ++++++++++++++
+ .../chat/v2/templates/FlashcardTemplate.tsx   | 123 +++++++++
+ .../chat/v2/templates/MarkdownTemplate.tsx    |  60 ++++
+ .../chat/v2/templates/VocabCardTemplate.tsx   | 115 ++++++++
+ .../v2/templates/WorksheetPosterTemplate.tsx  | 174 ++++++++++++
+ components/chat/v2/templates/index.ts         |  19 ++
+ components/chat/v2/types.ts                   | 108 ++++++++
+ 14 files changed, 1809 insertions(+)
+ create mode 100644 components/chat/v2/AssistantMessageV2.tsx
+ create mode 100644 components/chat/v2/ChatComposerV2.tsx
+ create mode 100644 components/chat/v2/ChatWorkspaceV2.tsx
+ create mode 100644 components/chat/v2/ModelDrawerV2.tsx
+ create mode 100644 components/chat/v2/UserMessageV2.tsx
+ create mode 100644 components/chat/v2/agent-registry.ts
+ create mode 100644 components/chat/v2/index.ts
+ create mode 100644 components/chat/v2/templates/EssayReviewTemplate.tsx
+ create mode 100644 components/chat/v2/templates/FlashcardTemplate.tsx
+ create mode 100644 components/chat/v2/templates/MarkdownTemplate.tsx
+ create mode 100644 components/chat/v2/templates/VocabCardTemplate.tsx
+ create mode 100644 components/chat/v2/templates/WorksheetPosterTemplate.tsx
+ create mode 100644 components/chat/v2/templates/index.ts
+ create mode 100644 components/chat/v2/types.ts
+
+diff --git a/components/chat/v2/AssistantMessageV2.tsx b/components/chat/v2/AssistantMessageV2.tsx
+new file mode 100644
+index 0000000..2899b5a
+--- /dev/null
++++ b/components/chat/v2/AssistantMessageV2.tsx
+@@ -0,0 +1,169 @@
++/**
++ * 🖌 v2 AI 消息气泡
++ *
++ * 与 UserMessage 不同 — AI 输出**不是聊天泡**，是一份学习产物。
++ * 根据 message.artifact.type 选择对应的产物模板：
++ *   - essay-review     → EssayReviewTemplate
++ *   - worksheet        → WorksheetPosterTemplate
++ *   - vocab-card       → VocabCardTemplate
++ *   - flashcard        → FlashcardTemplate
++ *   - markdown         → MarkdownTemplate（默认 fallback）
++ *
++ * 流式状态：使用 InkBrush 加载指示器
++ */
++
++"use client"
++
++import * as React from "react"
++import { Sparkles } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { InkBrush, InkReveal } from "@/components/motion/InkMotion"
++import { LoadingStateV2 } from "@/components/ui/v2/loading-state"
++import {
++  EssayReviewTemplate,
++  FlashcardTemplate,
++  MarkdownTemplate,
++  VocabCardTemplate,
++  WorksheetPosterTemplate,
++} from "./templates"
++import type { ChatMessageV2 } from "./types"
++
++export interface AssistantMessageV2Props {
++  message: ChatMessageV2
++  /** 自定义 markdown 渲染（外部传入避免硬依赖具体库） */
++  renderMarkdown?: (raw: string) => React.ReactNode
++  className?: string
++  onCopy?: (text: string) => void
++  onExportPDF?: () => void
++  onShare?: () => void
++  onAskFollowup?: () => void
++  onPlayAudio?: () => void
++}
++
++export function AssistantMessageV2({
++  message,
++  renderMarkdown,
++  className,
++  onCopy,
++  onExportPDF,
++  onShare,
++  onAskFollowup,
++  onPlayAudio,
++}: AssistantMessageV2Props) {
++  const isStreaming = message.streaming
++
++  // 流式中且没有内容 → 显示加载状态
++  if (isStreaming && !message.content && !message.artifact) {
++    return (
++      <div className={cn("flex w-full", className)} data-slot="v2-assistant-msg">
++        <div className="max-w-3xl w-full">
++          <AgentBadge />
++          <LoadingStateV2 label="AI 正在批改..." />
++        </div>
++      </div>
++    )
++  }
++
++  return (
++    <InkReveal as="div" className={cn("flex w-full", className)}>
++      <div className="max-w-3xl w-full" data-slot="v2-assistant-msg">
++        <AgentBadge />
++
++        {message.artifact ? (
++          <ArtifactSwitch
++            artifact={message.artifact}
++            renderMarkdown={renderMarkdown}
++            onCopy={() => onCopy?.(message.content)}
++            onExportPDF={onExportPDF}
++            onShare={onShare}
++            onAskFollowup={onAskFollowup}
++            onPlayAudio={onPlayAudio}
++          />
++        ) : (
++          <MarkdownTemplate
++            artifact={{ type: "markdown", rawMarkdown: message.content }}
++            renderedContent={
++              renderMarkdown ? renderMarkdown(message.content) : undefined
++            }
++            onCopy={() => onCopy?.(message.content)}
++            onExportPDF={onExportPDF}
++          />
++        )}
++
++        {/* 流式中状态条 */}
++        {isStreaming ? (
++          <div className="mt-2 flex items-center gap-2 text-[12px] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            <InkBrush className="h-4 w-12" />
++            正在生成...
++          </div>
++        ) : null}
++      </div>
++    </InkReveal>
++  )
++}
++
++function AgentBadge() {
++  return (
++    <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)] font-semibold">
++      <Sparkles className="size-3 text-[var(--seal-500)]" aria-hidden="true" />
++      沈翔智学 · AI 输出
++    </div>
++  )
++}
++
++interface ArtifactSwitchProps {
++  artifact: NonNullable<ChatMessageV2["artifact"]>
++  renderMarkdown?: (raw: string) => React.ReactNode
++  onCopy?: () => void
++  onExportPDF?: () => void
++  onShare?: () => void
++  onAskFollowup?: () => void
++  onPlayAudio?: () => void
++}
++
++function ArtifactSwitch({
++  artifact,
++  renderMarkdown,
++  onCopy,
++  onExportPDF,
++  onShare,
++  onAskFollowup,
++  onPlayAudio,
++}: ArtifactSwitchProps) {
++  switch (artifact.type) {
++    case "essay-review":
++      return (
++        <EssayReviewTemplate
++          artifact={artifact}
++          onCopy={onCopy}
++          onExportPDF={onExportPDF}
++          onShare={onShare}
++          onAskFollowup={onAskFollowup}
++        />
++      )
++    case "worksheet-diagnosis":
++      return (
++        <WorksheetPosterTemplate
++          artifact={artifact}
++          onDownload={onExportPDF}
++          onShare={onShare}
++        />
++      )
++    case "vocab-card":
++      return <VocabCardTemplate artifact={artifact} onPlayAudio={onPlayAudio} />
++    case "flashcard":
++      return <FlashcardTemplate artifact={artifact} />
++    case "markdown":
++    default:
++      return (
++        <MarkdownTemplate
++          artifact={artifact}
++          renderedContent={
++            renderMarkdown ? renderMarkdown(artifact.rawMarkdown) : undefined
++          }
++          onCopy={onCopy}
++          onExportPDF={onExportPDF}
++        />
++      )
++  }
++}
+diff --git a/components/chat/v2/ChatComposerV2.tsx b/components/chat/v2/ChatComposerV2.tsx
+new file mode 100644
+index 0000000..5f741f9
+--- /dev/null
++++ b/components/chat/v2/ChatComposerV2.tsx
+@@ -0,0 +1,154 @@
++/**
++ * 🖌 v2 chat 输入框
++ *
++ * 三件套：📎 上传 / 🎤 录音 / ⏎ 朱印发送
++ *
++ * 行为合同：
++ *   - 父组件提供 onSend(text, files)
++ *   - Enter 发送，Shift+Enter 换行
++ *   - 上传 / 录音 仅触发回调，本组件不实现上传逻辑
++ */
++
++"use client"
++
++import * as React from "react"
++import { Paperclip, Mic, Send, X } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { TextareaV2 } from "@/components/ui/v2/textarea"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { BrushDots } from "@/components/ui/v2/loading-state"
++
++export interface ChatComposerV2Props {
++  placeholder?: string
++  /** 当 streaming 时按钮显示加载小点 */
++  isStreaming?: boolean
++  /** 发送回调 */
++  onSend?: (text: string) => void
++  /** 上传按钮回调 */
++  onAttach?: () => void
++  /** 录音按钮回调 */
++  onRecord?: () => void
++  /** 已选附件 */
++  attachments?: Array<{ id: string; name: string; size?: number }>
++  /** 移除附件 */
++  onRemoveAttachment?: (id: string) => void
++  className?: string
++  disabled?: boolean
++}
++
++export function ChatComposerV2({
++  placeholder = "上传作文图片或粘贴文字…",
++  isStreaming,
++  onSend,
++  onAttach,
++  onRecord,
++  attachments,
++  onRemoveAttachment,
++  className,
++  disabled,
++}: ChatComposerV2Props) {
++  const [text, setText] = React.useState("")
++  const ref = React.useRef<HTMLTextAreaElement>(null)
++
++  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
++    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
++      e.preventDefault()
++      submit()
++    }
++  }
++
++  function submit() {
++    if (!text.trim()) return
++    onSend?.(text.trim())
++    setText("")
++    ref.current?.focus()
++  }
++
++  return (
++    <div
++      data-slot="v2-chat-composer"
++      className={cn(
++        "w-full max-w-3xl mx-auto",
++        "rounded-[var(--radius-card)] bg-white",
++        "border border-[var(--paper-200)] shadow-[var(--shadow-paper)]",
++        "transition-[border-color,box-shadow] duration-200",
++        "focus-within:border-[var(--ink-500)] focus-within:[box-shadow:var(--shadow-focus-ink)]",
++        className
++      )}
++    >
++      {/* 附件预览 */}
++      {attachments && attachments.length > 0 ? (
++        <div className="flex flex-wrap gap-2 border-b border-[var(--paper-200)] px-3 py-2">
++          {attachments.map((att) => (
++            <div
++              key={att.id}
++              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-[var(--paper-100)] px-2 py-1 text-[12px] text-[var(--ink-700)] font-[var(--font-sans-v2)]"
++            >
++              <span className="truncate max-w-[120px]">{att.name}</span>
++              <button
++                type="button"
++                onClick={() => onRemoveAttachment?.(att.id)}
++                className="size-4 inline-flex items-center justify-center rounded-full text-[var(--ink-500)] hover:bg-[var(--paper-300)]"
++                aria-label={`移除 ${att.name}`}
++              >
++                <X className="size-3" />
++              </button>
++            </div>
++          ))}
++        </div>
++      ) : null}
++
++      <div className="flex items-end gap-1 p-2">
++        <ButtonV2
++          variant="ghost"
++          size="icon-sm"
++          onClick={onAttach}
++          aria-label="上传文件"
++          disabled={disabled}
++        >
++          <Paperclip className="size-4" />
++        </ButtonV2>
++        <ButtonV2
++          variant="ghost"
++          size="icon-sm"
++          onClick={onRecord}
++          aria-label="语音输入"
++          disabled={disabled}
++        >
++          <Mic className="size-4" />
++        </ButtonV2>
++
++        <TextareaV2
++          ref={ref}
++          rows={1}
++          value={text}
++          onChange={(e) => setText(e.target.value)}
++          onKeyDown={handleKeyDown}
++          placeholder={placeholder}
++          className={cn(
++            "resize-none border-0 bg-transparent shadow-none",
++            "focus-visible:bg-transparent focus-visible:[box-shadow:none]",
++            "min-h-[44px] py-2 px-2 leading-[1.6]"
++          )}
++          disabled={disabled}
++        />
++
++        <ButtonV2
++          variant="seal"
++          size="icon"
++          onClick={submit}
++          aria-label="发送"
++          disabled={disabled || !text.trim()}
++        >
++          {isStreaming ? <BrushDots /> : <Send className="size-4" />}
++        </ButtonV2>
++      </div>
++
++      {/* 提示 */}
++      <div className="flex items-center justify-between border-t border-[var(--paper-200)] px-3 py-2 text-[11px] text-[var(--ink-400)] font-[var(--font-sans-v2)]">
++        <span>Enter 发送 · Shift+Enter 换行</span>
++        <span className="font-[var(--font-mono-v2)]">{text.length} / 2000</span>
++      </div>
++    </div>
++  )
++}
+diff --git a/components/chat/v2/ChatWorkspaceV2.tsx b/components/chat/v2/ChatWorkspaceV2.tsx
+new file mode 100644
+index 0000000..d7f6c4b
+--- /dev/null
++++ b/components/chat/v2/ChatWorkspaceV2.tsx
+@@ -0,0 +1,158 @@
++/**
++ * 🖌 v2 chat 工作台 — 整合容器
++ *
++ * 这是 chat 页面外层的 v2 视觉骨架，负责：
++ *   - 顶部模型抽屉触发器
++ *   - 中部消息列表（用户气泡 + AI 产物模板交替）
++ *   - 底部 Composer
++ *
++ * 业务侧依然由 enhanced-chat-interface.tsx 控制（数据流、SSE、扣费）。
++ * 本组件只做"展示层 v2"的视觉重构，不接管业务逻辑。
++ *
++ * 用法（PR8 上线后切换）：
++ *   <ChatWorkspaceV2
++ *     selectedModel={model}
++ *     onSelectModel={setModel}
++ *     messages={messages}
++ *     onSend={sendMessage}
++ *     isStreaming={loading}
++ *   />
++ */
++
++"use client"
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { ChatComposerV2 } from "./ChatComposerV2"
++import { ModelDrawerV2 } from "./ModelDrawerV2"
++import { UserMessageV2 } from "./UserMessageV2"
++import { AssistantMessageV2 } from "./AssistantMessageV2"
++import { EmptyStateV2 } from "@/components/ui/v2/empty-state"
++import type { ChatMessageV2 } from "./types"
++
++export interface ChatWorkspaceV2Props {
++  selectedModel?: string | null
++  onSelectModel?: (model: string) => void
++  isMember?: boolean
++
++  messages?: ChatMessageV2[]
++  isStreaming?: boolean
++
++  /** 发送消息（业务侧接 SSE） */
++  onSend?: (text: string) => void
++  onAttach?: () => void
++  onRecord?: () => void
++  attachments?: Array<{ id: string; name: string; size?: number }>
++  onRemoveAttachment?: (id: string) => void
++
++  /** Markdown 渲染（外部传入） */
++  renderMarkdown?: (raw: string) => React.ReactNode
++
++  /** 消息卡工具栏回调 */
++  onCopy?: (text: string) => void
++  onExportPDF?: () => void
++  onShare?: () => void
++  onAskFollowup?: () => void
++  onPlayAudio?: () => void
++
++  className?: string
++}
++
++export function ChatWorkspaceV2({
++  selectedModel,
++  onSelectModel,
++  isMember,
++  messages = [],
++  isStreaming,
++  onSend,
++  onAttach,
++  onRecord,
++  attachments,
++  onRemoveAttachment,
++  renderMarkdown,
++  onCopy,
++  onExportPDF,
++  onShare,
++  onAskFollowup,
++  onPlayAudio,
++  className,
++}: ChatWorkspaceV2Props) {
++  const scrollRef = React.useRef<HTMLDivElement>(null)
++
++  // 自动滚到底部
++  React.useEffect(() => {
++    if (!scrollRef.current) return
++    scrollRef.current.scrollTo({
++      top: scrollRef.current.scrollHeight,
++      behavior: "smooth",
++    })
++  }, [messages.length, isStreaming])
++
++  return (
++    <div
++      data-slot="v2-chat-workspace"
++      className={cn(
++        "flex h-full w-full flex-col bg-[var(--paper-50)] text-[var(--ink-900)]",
++        className
++      )}
++    >
++      {/* 顶部模型选择器 */}
++      <header className="border-b border-[var(--paper-200)] bg-[var(--paper-50)]/85 px-4 py-2 backdrop-blur-md md:px-6">
++        <ModelDrawerV2
++          selectedModel={selectedModel}
++          onSelect={onSelectModel}
++          isMember={isMember}
++        />
++      </header>
++
++      {/* 消息流 */}
++      <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-6 md:px-6">
++        {messages.length === 0 && !isStreaming ? (
++          <EmptyStateV2
++            title="上传作文 / 试卷 / 错题"
++            description="先选一个智能体，然后上传材料，AI 会生成可读、可改、可分享的报告。"
++          />
++        ) : (
++          <div className="mx-auto flex max-w-3xl flex-col gap-6">
++            {messages.map((m) =>
++              m.role === "user" ? (
++                <UserMessageV2
++                  key={m.id}
++                  content={m.content}
++                  attachments={m.attachments?.filter(
++                    (a): a is { type: "image" | "file"; url: string; name?: string } =>
++                      a.type === "image" || a.type === "file"
++                  )}
++                  createdAt={m.createdAt}
++                />
++              ) : (
++                <AssistantMessageV2
++                  key={m.id}
++                  message={m}
++                  renderMarkdown={renderMarkdown}
++                  onCopy={onCopy}
++                  onExportPDF={onExportPDF}
++                  onShare={onShare}
++                  onAskFollowup={onAskFollowup}
++                  onPlayAudio={onPlayAudio}
++                />
++              )
++            )}
++          </div>
++        )}
++      </div>
++
++      {/* 输入框 */}
++      <footer className="border-t border-[var(--paper-200)] bg-[var(--paper-50)] px-4 py-3 md:px-6">
++        <ChatComposerV2
++          isStreaming={isStreaming}
++          onSend={onSend}
++          onAttach={onAttach}
++          onRecord={onRecord}
++          attachments={attachments}
++          onRemoveAttachment={onRemoveAttachment}
++        />
++      </footer>
++    </div>
++  )
++}
+diff --git a/components/chat/v2/ModelDrawerV2.tsx b/components/chat/v2/ModelDrawerV2.tsx
+new file mode 100644
+index 0000000..2985165
+--- /dev/null
++++ b/components/chat/v2/ModelDrawerV2.tsx
+@@ -0,0 +1,177 @@
++/**
++ * 🖌 v2 智能体抽屉式选择器
++ *
++ * 不是 dropdown — 是一份真正的"画廊"。
++ * 视觉：墨绿底 + 朱印章高亮当前选中智能体。
++ */
++
++"use client"
++
++import * as React from "react"
++import { Lock } from "lucide-react"
++import { cn } from "@/lib/utils"
++import {
++  SheetV2,
++  SheetV2Content,
++  SheetV2Trigger,
++  SheetV2Header,
++  SheetV2Title,
++  SheetV2Description,
++} from "@/components/ui/v2/sheet"
++import { BadgeV2 } from "@/components/ui/v2/badge"
++import { AGENT_GROUPS, AGENT_REGISTRY, listAgentsByGroup } from "./agent-registry"
++import type { AgentDefinition } from "./types"
++
++export interface ModelDrawerV2Props {
++  /** 当前选中的 model key */
++  selectedModel?: string | null
++  /** 选中后回调 */
++  onSelect?: (model: string) => void
++  /** 触发器内容，默认显示"选择智能体" */
++  children?: React.ReactNode
++  /** 用户是否会员，决定 memberOnly 智能体是否可点 */
++  isMember?: boolean
++  className?: string
++}
++
++export function ModelDrawerV2({
++  selectedModel,
++  onSelect,
++  children,
++  isMember,
++  className,
++}: ModelDrawerV2Props) {
++  const [open, setOpen] = React.useState(false)
++  const current = selectedModel ? AGENT_REGISTRY[selectedModel] : null
++
++  return (
++    <SheetV2 open={open} onOpenChange={setOpen}>
++      <SheetV2Trigger asChild>
++        {children ?? (
++          <button
++            type="button"
++            className={cn(
++              "inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)]",
++              "border border-[var(--paper-300)] bg-white",
++              "font-[var(--font-sans-v2)] text-[14px] font-medium text-[var(--ink-800)]",
++              "hover:border-[var(--ink-300)] hover:bg-[var(--ink-50)]/40",
++              "transition-colors duration-200",
++              className
++            )}
++          >
++            <span className="text-[var(--ink-500)]">智能体：</span>
++            <span>{current?.name ?? "通用对话"}</span>
++            <span className="text-[var(--ink-400)]">▾</span>
++          </button>
++        )}
++      </SheetV2Trigger>
++
++      <SheetV2Content side="right" className="w-[92vw] max-w-2xl">
++        <SheetV2Header>
++          <SheetV2Title>选择智能体</SheetV2Title>
++          <SheetV2Description>
++            按任务分组的全部 22 个智能体。每个智能体输出对应的学习产物模板。
++          </SheetV2Description>
++        </SheetV2Header>
++
++        <div className="flex-1 overflow-auto px-6 py-4 font-[var(--font-sans-v2)]">
++          {AGENT_GROUPS.map((group) => {
++            const items = listAgentsByGroup(group.key)
++            if (items.length === 0) return null
++            return (
++              <section key={group.key} className="mb-6">
++                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)]">
++                  {group.label}
++                </h3>
++                <div className="grid gap-2 sm:grid-cols-2">
++                  {items.map((agent) => (
++                    <AgentCard
++                      key={agent.model}
++                      agent={agent}
++                      active={agent.model === selectedModel}
++                      locked={agent.memberOnly && !isMember}
++                      onClick={() => {
++                        if (agent.memberOnly && !isMember) return
++                        onSelect?.(agent.model)
++                        setOpen(false)
++                      }}
++                    />
++                  ))}
++                </div>
++              </section>
++            )
++          })}
++        </div>
++      </SheetV2Content>
++    </SheetV2>
++  )
++}
++
++function AgentCard({
++  agent,
++  active,
++  locked,
++  onClick,
++}: {
++  agent: AgentDefinition
++  active?: boolean
++  locked?: boolean
++  onClick?: () => void
++}) {
++  const Icon = agent.icon
++  return (
++    <button
++      type="button"
++      onClick={onClick}
++      disabled={locked}
++      className={cn(
++        "group relative flex items-start gap-3 rounded-[var(--radius-soft)] p-3 text-left",
++        "transition-colors duration-200",
++        active
++          ? "bg-[var(--ink-50)] border border-[var(--ink-300)]"
++          : "border border-[var(--paper-200)] bg-white hover:bg-[var(--ink-50)]/60",
++        locked && "opacity-50 cursor-not-allowed"
++      )}
++    >
++      <div
++        className={cn(
++          "flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-soft)]",
++          active
++            ? "bg-[var(--ink-700)] text-white"
++            : "bg-[var(--ink-50)] text-[var(--ink-700)]"
++        )}
++      >
++        {Icon ? <Icon className="size-4" /> : null}
++      </div>
++
++      <div className="min-w-0 flex-1">
++        <div className="flex items-center gap-1.5">
++          <span className="font-[var(--font-display)] text-[14px] font-bold text-[var(--ink-800)]">
++            {agent.name}
++          </span>
++          {agent.memberOnly ? (
++            <BadgeV2 variant="seal">
++              <Lock className="size-2.5 mr-0.5" />
++              会员
++            </BadgeV2>
++          ) : null}
++        </div>
++        <p className="mt-0.5 text-[12px] leading-[1.5] text-[var(--ink-500)] line-clamp-2">
++          {agent.description}
++        </p>
++        {agent.priceLabel ? (
++          <p className="mt-1 text-[11px] text-[var(--ink-400)] font-[var(--font-mono-v2)]">
++            {agent.priceLabel}
++          </p>
++        ) : null}
++      </div>
++
++      {active ? (
++        <span
++          className="absolute right-3 top-3 size-1.5 rounded-full bg-[var(--seal-500)]"
++          aria-hidden="true"
++        />
++      ) : null}
++    </button>
++  )
++}
+diff --git a/components/chat/v2/UserMessageV2.tsx b/components/chat/v2/UserMessageV2.tsx
+new file mode 100644
+index 0000000..7912190
+--- /dev/null
++++ b/components/chat/v2/UserMessageV2.tsx
+@@ -0,0 +1,77 @@
++/**
++ * 🖌 v2 用户消息气泡
++ *
++ * 视觉：白纸条贴在墨绿背景上 — 不是"灰泡贴右"，是一条"撕下来的便签"
++ */
++
++import * as React from "react"
++import Image from "next/image"
++import { cn } from "@/lib/utils"
++
++interface UserMessageV2Props {
++  content: string
++  attachments?: Array<{ type: "image" | "file"; url: string; name?: string }>
++  createdAt?: string
++  className?: string
++}
++
++export function UserMessageV2({
++  content,
++  attachments,
++  createdAt,
++  className,
++}: UserMessageV2Props) {
++  return (
++    <div className={cn("flex w-full justify-end", className)}>
++      <div
++        data-slot="v2-user-msg"
++        className={cn(
++          "max-w-[85%] sm:max-w-[70%]",
++          "rounded-[var(--radius-soft)] bg-[var(--ink-700)] text-white",
++          "px-4 py-3 shadow-[var(--shadow-paper)]",
++          "font-[var(--font-sans-v2)]"
++        )}
++      >
++        {/* 附件预览 */}
++        {attachments && attachments.length > 0 ? (
++          <div className="mb-2 grid grid-cols-2 gap-2">
++            {attachments.map((att, idx) =>
++              att.type === "image" ? (
++                <div
++                  key={idx}
++                  className="relative aspect-square overflow-hidden rounded-[var(--radius-soft)] bg-black/20"
++                >
++                  <Image
++                    src={att.url}
++                    alt={att.name ?? `附件 ${idx + 1}`}
++                    fill
++                    sizes="200px"
++                    className="object-cover"
++                  />
++                </div>
++              ) : (
++                <span
++                  key={idx}
++                  className="rounded-[var(--radius-soft)] bg-white/10 px-2 py-1 text-[12px]"
++                >
++                  📎 {att.name ?? "文件"}
++                </span>
++              )
++            )}
++          </div>
++        ) : null}
++
++        <p className="whitespace-pre-wrap text-[15px] leading-[1.7]">{content}</p>
++
++        {createdAt ? (
++          <div className="mt-2 text-[11px] text-white/60 text-right font-[var(--font-mono-v2)]">
++            {new Date(createdAt).toLocaleString("zh-CN", {
++              hour: "2-digit",
++              minute: "2-digit",
++            })}
++          </div>
++        ) : null}
++      </div>
++    </div>
++  )
++}
+diff --git a/components/chat/v2/agent-registry.ts b/components/chat/v2/agent-registry.ts
+new file mode 100644
+index 0000000..be39631
+--- /dev/null
++++ b/components/chat/v2/agent-registry.ts
+@@ -0,0 +1,259 @@
++/**
++ * 🖌 v2 智能体注册表
++ *
++ * 所有 22 个智能体的 v2 视觉元数据集中在这里。
++ * 与 lib/dify-credentials.ts 等业务侧的 model key 对齐。
++ */
++
++import {
++  PenLine,
++  GraduationCap,
++  Sparkles,
++  Image as ImageIcon,
++  Music,
++  Calculator,
++  BookOpen,
++  HelpCircle,
++  Layers3,
++  Clipboard,
++  Users,
++  ScrollText,
++  Award,
++  Lightbulb,
++  Globe,
++  Briefcase,
++  Mic,
++  Megaphone,
++  type LucideIcon,
++} from "lucide-react"
++import type { AgentDefinition } from "./types"
++
++export const AGENT_REGISTRY: Record<string, AgentDefinition> = {
++  standard: {
++    model: "standard",
++    name: "作文批改",
++    description: "上传作文，逐段批注 + 升格建议",
++    group: "writing",
++    artifactType: "essay-review",
++    priceLabel: "100 积分/次",
++    icon: PenLine as LucideIcon,
++  },
++  "general-chat": {
++    model: "general-chat",
++    name: "通用对话",
++    description: "日常学习问答",
++    group: "general",
++    artifactType: "markdown",
++    priceLabel: "按字数计费",
++    icon: Sparkles as LucideIcon,
++  },
++  "teaching-pro": {
++    model: "teaching-pro",
++    name: "教学评 Pro",
++    description: "教案、点评报告、班级公告",
++    group: "teaching",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    memberOnly: false,
++    icon: GraduationCap as LucideIcon,
++  },
++  "ai-writing-paper": {
++    model: "ai-writing-paper",
++    name: "论文写作",
++    description: "结构化论文初稿 + 引用整理",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: ScrollText as LucideIcon,
++  },
++  "zhongying-essay": {
++    model: "zhongying-essay",
++    name: "中英作文",
++    description: "中英对照创作与润色",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: BookOpen as LucideIcon,
++  },
++  "reading-report": {
++    model: "reading-report",
++    name: "读书报告",
++    description: "读后感与读书笔记",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: BookOpen as LucideIcon,
++  },
++  "experiment-report": {
++    model: "experiment-report",
++    name: "实验报告",
++    description: "实验目的、过程、结论结构化",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: Lightbulb as LucideIcon,
++  },
++  "study-abroad": {
++    model: "study-abroad",
++    name: "留学文书",
++    description: "PS / SOP / Essay 多轮打磨",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: Globe as LucideIcon,
++  },
++  "resume-optimize": {
++    model: "resume-optimize",
++    name: "简历优化",
++    description: "升级你的求职简历",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "20 积分起",
++    icon: Briefcase as LucideIcon,
++  },
++  "speech-defense": {
++    model: "speech-defense",
++    name: "演讲答辩",
++    description: "答辩 / 演讲稿 / 即兴演讲",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "20 积分起",
++    icon: Mic as LucideIcon,
++  },
++  "school-wechat": {
++    model: "school-wechat",
++    name: "校园文案",
++    description: "校园活动 / 公众号 / 海报文案",
++    group: "writing",
++    artifactType: "markdown",
++    priceLabel: "20 积分起",
++    icon: Megaphone as LucideIcon,
++  },
++  "beike-pro": {
++    model: "beike-pro",
++    name: "备课 Pro",
++    description: "教案 / 课程目标 / 板书",
++    group: "teaching",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: GraduationCap as LucideIcon,
++  },
++  banzhuren: {
++    model: "banzhuren",
++    name: "班主任助手",
++    description: "学生评语、家长沟通、班级管理",
++    group: "teaching",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: Users as LucideIcon,
++  },
++  "quanquan-math": {
++    model: "quanquan-math",
++    name: "全学段数学",
++    description: "数学问题分步讲解",
++    group: "subject",
++    artifactType: "markdown",
++    priceLabel: "20 积分起",
++    icon: Calculator as LucideIcon,
++  },
++  "quanquan-english": {
++    model: "quanquan-english",
++    name: "全学段英语",
++    description: "英语题翻译与讲解",
++    group: "subject",
++    artifactType: "markdown",
++    priceLabel: "20 积分起",
++    icon: BookOpen as LucideIcon,
++  },
++  "vocab-card": {
++    model: "vocab-card",
++    name: "词境记忆卡",
++    description: "单词卡片 + 记忆故事 + 发音",
++    group: "subject",
++    artifactType: "vocab-card",
++    priceLabel: "20 积分起",
++    icon: Layers3 as LucideIcon,
++  },
++  problem: {
++    model: "problem",
++    name: "题目解析",
++    description: "拍题或输入题干 → 分步讲解",
++    group: "subject",
++    artifactType: "markdown",
++    priceLabel: "按字数计费",
++    icon: HelpCircle as LucideIcon,
++  },
++  "open-claw": {
++    model: "open-claw",
++    name: "OpenClaw 演示页",
++    description: "生成完整 PPT / 网页",
++    group: "creative",
++    artifactType: "markdown",
++    priceLabel: "高级模型",
++    icon: Clipboard as LucideIcon,
++  },
++  "banana-2-pro": {
++    model: "banana-2-pro",
++    name: "Banana 2 Pro 4K",
++    description: "高质量图像生成（4K 大图）",
++    group: "creative",
++    artifactType: "markdown",
++    priceLabel: "165 积分/张",
++    icon: ImageIcon as LucideIcon,
++  },
++  "gpt-image-2": {
++    model: "gpt-image-2",
++    name: "GPT Image 2",
++    description: "高质量 4K 图像生成与修图",
++    group: "creative",
++    artifactType: "markdown",
++    priceLabel: "260 积分/张",
++    memberOnly: true,
++    icon: ImageIcon as LucideIcon,
++  },
++  "gpt-image-1": {
++    model: "gpt-image-1",
++    name: "GPT Image 1",
++    description: "标准图像生成",
++    group: "creative",
++    artifactType: "markdown",
++    priceLabel: "150 积分/张",
++    icon: ImageIcon as LucideIcon,
++  },
++  "suno-v5": {
++    model: "suno-v5",
++    name: "Suno V5 音乐",
++    description: "AI 作词 + 作曲 + 生成完整歌曲",
++    group: "creative",
++    artifactType: "markdown",
++    priceLabel: "100 积分起",
++    icon: Music as LucideIcon,
++  },
++  "all-in-one-agent": {
++    model: "all-in-one-agent",
++    name: "全能超级智能体",
++    description: "自动选择合适工具完成复杂任务",
++    group: "general",
++    artifactType: "markdown",
++    priceLabel: "按 Token 计费",
++    icon: Award as LucideIcon,
++  },
++}
++
++/** 按组分类输出 */
++export const AGENT_GROUPS: Array<{ key: AgentDefinition["group"]; label: string }> = [
++  { key: "general", label: "通用" },
++  { key: "writing", label: "写作类" },
++  { key: "teaching", label: "教学类" },
++  { key: "subject", label: "学科类" },
++  { key: "creative", label: "创作类" },
++]
++
++export function getAgentByModel(model: string | null | undefined): AgentDefinition | null {
++  if (!model) return null
++  return AGENT_REGISTRY[model] ?? null
++}
++
++export function listAgentsByGroup(group: AgentDefinition["group"]) {
++  return Object.values(AGENT_REGISTRY).filter((a) => a.group === group)
++}
+diff --git a/components/chat/v2/index.ts b/components/chat/v2/index.ts
+new file mode 100644
+index 0000000..4fec837
+--- /dev/null
++++ b/components/chat/v2/index.ts
+@@ -0,0 +1,17 @@
++/**
++ * 🖌 v2 chat 工作台总出口
++ */
++
++export { UserMessageV2 } from "./UserMessageV2"
++export { AssistantMessageV2, type AssistantMessageV2Props } from "./AssistantMessageV2"
++export { ChatComposerV2, type ChatComposerV2Props } from "./ChatComposerV2"
++export { ChatWorkspaceV2, type ChatWorkspaceV2Props } from "./ChatWorkspaceV2"
++export { ModelDrawerV2, type ModelDrawerV2Props } from "./ModelDrawerV2"
++export {
++  AGENT_REGISTRY,
++  AGENT_GROUPS,
++  getAgentByModel,
++  listAgentsByGroup,
++} from "./agent-registry"
++export type * from "./types"
++export * from "./templates"
+diff --git a/components/chat/v2/templates/EssayReviewTemplate.tsx b/components/chat/v2/templates/EssayReviewTemplate.tsx
+new file mode 100644
+index 0000000..f438863
+--- /dev/null
++++ b/components/chat/v2/templates/EssayReviewTemplate.tsx
+@@ -0,0 +1,199 @@
++/**
++ * 🖌 v2 作文批改稿模板
++ *
++ * 视觉灵感：印刷批改稿
++ *   - 顶部宋体大标题
++ *   - 朱印评分章
++ *   - 段落带"问题 / 建议 / 训练"三段式
++ *   - 底部行动栏：复制 / 导出 PDF / 分享 / 继续追问
++ */
++
++"use client"
++
++import * as React from "react"
++import { Copy, FileDown, Share2, MessageCircle, Sparkles } from "lucide-react"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { ScoreSeal, SealStamp } from "@/components/ui/v2/seal"
++import { cn } from "@/lib/utils"
++import type { EssayReviewArtifact } from "../types"
++
++export interface EssayReviewTemplateProps {
++  artifact: EssayReviewArtifact
++  className?: string
++  onCopy?: () => void
++  onExportPDF?: () => void
++  onShare?: () => void
++  onAskFollowup?: () => void
++}
++
++export function EssayReviewTemplate({
++  artifact,
++  className,
++  onCopy,
++  onExportPDF,
++  onShare,
++  onAskFollowup,
++}: EssayReviewTemplateProps) {
++  return (
++    <article
++      data-slot="v2-essay-review"
++      className={cn(
++        "relative w-full max-w-3xl overflow-hidden",
++        "bg-white text-[var(--ink-900)]",
++        "border border-[var(--paper-200)] rounded-[var(--radius-sharp)]",
++        "shadow-[var(--shadow-paper)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      {/* 顶部 Banner */}
++      <header className="relative border-b-2 border-double border-[var(--ink-700)] bg-[var(--paper-50)] px-6 py-5 text-center">
++        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--ink-500)]">
++          作文批改报告
++        </p>
++        <h1 className="mt-1 font-[var(--font-display)] text-[28px] font-black leading-tight text-[var(--ink-800)] sm:text-[32px]">
++          {artifact.title}
++        </h1>
++        {(artifact.grade || artifact.wordCount) ? (
++          <p className="mt-1 text-[12px] text-[var(--ink-500)]">
++            {[
++              artifact.grade,
++              typeof artifact.wordCount === "number" ? `${artifact.wordCount} 字` : null,
++            ]
++              .filter(Boolean)
++              .join(" · ")}
++          </p>
++        ) : null}
++
++        {/* 角落朱印 "已批阅" */}
++        <div
++          aria-hidden="true"
++          className="absolute right-3 top-3"
++        >
++          <SealStamp size="sm" rotate={-8}>
++            已批阅
++          </SealStamp>
++        </div>
++      </header>
++
++      {/* 评分大章 */}
++      {artifact.score ? (
++        <section className="border-b border-[var(--paper-200)] px-6 py-6 sm:px-8 sm:py-8 flex items-center gap-6">
++          <ScoreSeal
++            score={artifact.score.value.toFixed(1)}
++            total={artifact.score.total}
++            size={92}
++          />
++          <div>
++            <h2 className="font-[var(--font-display)] text-[16px] font-bold text-[var(--ink-800)] sm:text-[18px]">
++              评分总览
++            </h2>
++            {artifact.summary ? (
++              <p className="mt-2 text-[14px] leading-[1.7] text-[var(--ink-700)]">
++                {artifact.summary}
++              </p>
++            ) : null}
++          </div>
++        </section>
++      ) : null}
++
++      {/* 问题诊断 */}
++      {artifact.diagnosis && artifact.diagnosis.length > 0 ? (
++        <section className="border-b border-[var(--paper-200)] px-6 py-6 sm:px-8 sm:py-8">
++          <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++            一、问题诊断
++          </h2>
++          <ul className="mt-4 space-y-3">
++            {artifact.diagnosis.map((item, idx) => (
++              <li
++                key={idx}
++                className="rounded-[var(--radius-soft)] bg-[var(--paper-100)] p-4"
++              >
++                <h3 className="font-[var(--font-display)] text-[15px] font-bold text-[var(--ink-800)]">
++                  {idx + 1}. {item.title}
++                </h3>
++                <p className="mt-1 text-[14px] leading-[1.7] text-[var(--ink-700)]">
++                  {item.detail}
++                </p>
++              </li>
++            ))}
++          </ul>
++        </section>
++      ) : null}
++
++      {/* 修改建议 + 训练任务 */}
++      {(artifact.suggestions?.length || artifact.trainingTasks?.length) ? (
++        <section className="grid gap-6 border-b border-[var(--paper-200)] px-6 py-6 sm:grid-cols-2 sm:px-8 sm:py-8 sm:gap-8">
++          {artifact.suggestions?.length ? (
++            <div>
++              <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++                二、修改建议
++              </h2>
++              <ul className="mt-4 space-y-2">
++                {artifact.suggestions.map((s, idx) => (
++                  <li key={idx} className="flex items-start gap-2 text-[14px] leading-[1.7] text-[var(--ink-700)]">
++                    <Sparkles className="mt-0.5 size-3 shrink-0 text-[var(--seal-500)]" aria-hidden="true" />
++                    <span>{s}</span>
++                  </li>
++                ))}
++              </ul>
++            </div>
++          ) : null}
++
++          {artifact.trainingTasks?.length ? (
++            <div>
++              <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++                三、今日训练
++              </h2>
++              <ul className="mt-4 space-y-2">
++                {artifact.trainingTasks.map((t, idx) => (
++                  <li
++                    key={idx}
++                    className="rounded-[var(--radius-soft)] bg-[var(--seal-50)]/60 px-3 py-2 text-[14px] leading-[1.7] text-[var(--seal-600)]"
++                  >
++                    {t}
++                  </li>
++                ))}
++              </ul>
++            </div>
++          ) : null}
++        </section>
++      ) : null}
++
++      {/* 终稿 */}
++      {artifact.finalDraft ? (
++        <section className="border-b border-[var(--paper-200)] px-6 py-6 sm:px-8 sm:py-8">
++          <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++            四、修改后定稿
++          </h2>
++          <div className="mt-4 whitespace-pre-line rounded-[var(--radius-soft)] bg-[var(--paper-100)] p-4 text-[15px] leading-[1.9] text-[var(--ink-800)]">
++            {artifact.finalDraft}
++          </div>
++        </section>
++      ) : null}
++
++      {/* 工具栏 */}
++      <footer className="flex flex-wrap items-center gap-2 px-6 py-4 sm:px-8 bg-[var(--paper-50)]">
++        <ButtonV2 variant="ghost" size="sm" onClick={onCopy}>
++          <Copy className="size-3.5" aria-hidden="true" /> 复制
++        </ButtonV2>
++        <ButtonV2 variant="seal" size="sm" onClick={onExportPDF}>
++          <FileDown className="size-3.5" aria-hidden="true" /> 导出 PDF
++        </ButtonV2>
++        <ButtonV2 variant="outline" size="sm" onClick={onShare}>
++          <Share2 className="size-3.5" aria-hidden="true" /> 分享
++        </ButtonV2>
++        {onAskFollowup ? (
++          <ButtonV2 variant="ghost" size="sm" onClick={onAskFollowup}>
++            <MessageCircle className="size-3.5" aria-hidden="true" /> 继续追问
++          </ButtonV2>
++        ) : null}
++      </footer>
++
++      {/* 底部水印 */}
++      <div className="absolute bottom-2 right-3 font-[var(--font-display)] text-[10px] text-[var(--ink-300)] tracking-widest">
++        沈翔智学
++      </div>
++    </article>
++  )
++}
+diff --git a/components/chat/v2/templates/FlashcardTemplate.tsx b/components/chat/v2/templates/FlashcardTemplate.tsx
+new file mode 100644
+index 0000000..db4f827
+--- /dev/null
++++ b/components/chat/v2/templates/FlashcardTemplate.tsx
+@@ -0,0 +1,123 @@
++/**
++ * 🖌 v2 闪卡模板
++ *
++ * 翻面卡片：点击翻转看背面
++ */
++
++"use client"
++
++import * as React from "react"
++import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { cn } from "@/lib/utils"
++import type { FlashcardArtifact } from "../types"
++
++export interface FlashcardTemplateProps {
++  artifact: FlashcardArtifact
++  className?: string
++}
++
++export function FlashcardTemplate({ artifact, className }: FlashcardTemplateProps) {
++  const [index, setIndex] = React.useState(0)
++  const [flipped, setFlipped] = React.useState(false)
++
++  if (!artifact.cards || artifact.cards.length === 0) {
++    return (
++      <p className="text-[14px] text-[var(--ink-500)]">未生成闪卡。</p>
++    )
++  }
++
++  const current = artifact.cards[index]
++  const total = artifact.cards.length
++
++  function next() {
++    setFlipped(false)
++    setIndex((prev) => (prev + 1) % total)
++  }
++  function prev() {
++    setFlipped(false)
++    setIndex((prev) => (prev - 1 + total) % total)
++  }
++
++  return (
++    <div
++      data-slot="v2-flashcard-deck"
++      className={cn(
++        "w-full max-w-md mx-auto font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      {/* 进度 */}
++      <div className="mb-3 flex items-center justify-between text-[12px] text-[var(--ink-500)]">
++        <span className="font-[var(--font-mono-v2)] tabular-nums">
++          {index + 1} / {total}
++        </span>
++        <span>点击卡片翻面</span>
++      </div>
++
++      {/* 卡片 */}
++      <button
++        type="button"
++        onClick={() => setFlipped((v) => !v)}
++        className={cn(
++          "relative block aspect-[3/2] w-full overflow-hidden",
++          "rounded-[var(--radius-card)] border border-[var(--paper-200)]",
++          "bg-white text-[var(--ink-900)]",
++          "shadow-[var(--shadow-elevated)]",
++          "transition-transform duration-500 ease-[var(--ease-paper-fold)]",
++          "[transform-style:preserve-3d]",
++          flipped && "[transform:rotateY(180deg)]"
++        )}
++        aria-label={flipped ? "卡片背面" : "卡片正面"}
++      >
++        {/* 正面 */}
++        <div
++          className="absolute inset-0 flex flex-col items-center justify-center p-6 [backface-visibility:hidden]"
++        >
++          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--ink-500)]">
++            题面
++          </p>
++          <p className="mt-3 font-[var(--font-display)] text-[22px] font-bold text-[var(--ink-800)] text-center">
++            {current.front}
++          </p>
++          {current.hint ? (
++            <p className="mt-3 text-[12px] text-[var(--ink-400)] italic">
++              提示：{current.hint}
++            </p>
++          ) : null}
++        </div>
++
++        {/* 背面 */}
++        <div
++          className="absolute inset-0 flex flex-col items-center justify-center p-6 [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[var(--ink-50)]"
++        >
++          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--seal-500)]">
++            答案
++          </p>
++          <p className="mt-3 font-[var(--font-display)] text-[20px] font-bold text-[var(--ink-800)] text-center leading-[1.5]">
++            {current.back}
++          </p>
++        </div>
++      </button>
++
++      {/* 控制 */}
++      <div className="mt-4 flex items-center justify-between">
++        <ButtonV2 variant="ghost" size="sm" onClick={prev} aria-label="上一张">
++          <ChevronLeft className="size-4" /> 上一张
++        </ButtonV2>
++        <ButtonV2
++          variant="outline"
++          size="sm"
++          onClick={() => setFlipped((v) => !v)}
++          aria-label="翻面"
++        >
++          <RotateCcw className="size-3.5" />
++          翻面
++        </ButtonV2>
++        <ButtonV2 variant="primary" size="sm" onClick={next} aria-label="下一张">
++          下一张 <ChevronRight className="size-4" />
++        </ButtonV2>
++      </div>
++    </div>
++  )
++}
+diff --git a/components/chat/v2/templates/MarkdownTemplate.tsx b/components/chat/v2/templates/MarkdownTemplate.tsx
+new file mode 100644
+index 0000000..4d741bd
+--- /dev/null
++++ b/components/chat/v2/templates/MarkdownTemplate.tsx
+@@ -0,0 +1,60 @@
++/**
++ * 🖌 v2 默认 Markdown 模板
++ *
++ * 通用 fallback：把任何文本/markdown 包到一份"批改稿样式"中。
++ * 实际渲染交给现有 EnhancedMarkdown 组件，由本组件套上 v2 外壳。
++ */
++
++import * as React from "react"
++import { Copy, FileDown } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import type { RawMarkdownArtifact } from "../types"
++
++export interface MarkdownTemplateProps {
++  artifact: RawMarkdownArtifact
++  /** 让外部传入已渲染的 Markdown JSX（避免本组件依赖具体渲染库） */
++  renderedContent?: React.ReactNode
++  className?: string
++  onCopy?: () => void
++  onExportPDF?: () => void
++}
++
++export function MarkdownTemplate({
++  artifact,
++  renderedContent,
++  className,
++  onCopy,
++  onExportPDF,
++}: MarkdownTemplateProps) {
++  return (
++    <article
++      data-slot="v2-markdown"
++      className={cn(
++        "w-full max-w-3xl",
++        "bg-white text-[var(--ink-900)]",
++        "border border-[var(--paper-200)] rounded-[var(--radius-sharp)]",
++        "shadow-[var(--shadow-paper)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <div className="px-6 py-5 sm:px-8 sm:py-7 prose-content max-w-none">
++        {renderedContent ?? (
++          <pre className="whitespace-pre-wrap font-[var(--font-sans-v2)] text-[15px] leading-[1.8] text-[var(--ink-800)]">
++            {artifact.rawMarkdown}
++          </pre>
++        )}
++      </div>
++
++      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--paper-200)] px-6 py-3 sm:px-8 bg-[var(--paper-50)]">
++        <ButtonV2 variant="ghost" size="sm" onClick={onCopy}>
++          <Copy className="size-3.5" /> 复制
++        </ButtonV2>
++        <ButtonV2 variant="outline" size="sm" onClick={onExportPDF}>
++          <FileDown className="size-3.5" /> 导出 PDF
++        </ButtonV2>
++      </div>
++    </article>
++  )
++}
+diff --git a/components/chat/v2/templates/VocabCardTemplate.tsx b/components/chat/v2/templates/VocabCardTemplate.tsx
+new file mode 100644
+index 0000000..c0e9b9a
+--- /dev/null
++++ b/components/chat/v2/templates/VocabCardTemplate.tsx
+@@ -0,0 +1,115 @@
++/**
++ * 🖌 v2 词境记忆卡模板
++ *
++ * 视觉：单词卡片正面（朱印小章在右上）
++ */
++
++"use client"
++
++import * as React from "react"
++import { Volume2 } from "lucide-react"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { SealStamp } from "@/components/ui/v2/seal"
++import { cn } from "@/lib/utils"
++import type { VocabCardArtifact } from "../types"
++
++export interface VocabCardTemplateProps {
++  artifact: VocabCardArtifact
++  className?: string
++  onPlayAudio?: () => void
++}
++
++export function VocabCardTemplate({
++  artifact,
++  className,
++  onPlayAudio,
++}: VocabCardTemplateProps) {
++  return (
++    <article
++      data-slot="v2-vocab-card"
++      className={cn(
++        "relative w-full max-w-md overflow-hidden",
++        "bg-[var(--paper-50)] border border-[var(--paper-200)]",
++        "rounded-[var(--radius-card)] shadow-[var(--shadow-elevated)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      {/* 朱印章 */}
++      <div aria-hidden="true" className="absolute right-3 top-3">
++        <SealStamp size="xs" rotate={6}>
++          词
++        </SealStamp>
++      </div>
++
++      <div className="px-6 pt-7 pb-6 text-center">
++        {/* 单词 */}
++        <h1 className="font-[var(--font-display)] text-[42px] font-black leading-tight text-[var(--ink-800)]">
++          {artifact.word}
++        </h1>
++
++        {/* 音标 + 发音 */}
++        {artifact.pronunciation ? (
++          <div className="mt-1 flex items-center justify-center gap-2">
++            <p className="font-[var(--font-mono-v2)] text-[14px] text-[var(--ink-500)]">
++              /{artifact.pronunciation}/
++            </p>
++            {onPlayAudio ? (
++              <ButtonV2
++                variant="ghost"
++                size="icon-sm"
++                onClick={onPlayAudio}
++                aria-label="播放发音"
++              >
++                <Volume2 className="size-4" />
++              </ButtonV2>
++            ) : null}
++          </div>
++        ) : null}
++
++        {/* 释义 */}
++        {artifact.meaning ? (
++          <div className="mt-5 rounded-[var(--radius-soft)] bg-[var(--ink-50)] px-4 py-3 text-left">
++            <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-500)]">
++              释义
++            </p>
++            <p className="mt-1 text-[15px] leading-[1.7] text-[var(--ink-800)]">
++              {artifact.meaning}
++            </p>
++          </div>
++        ) : null}
++
++        {/* 例句 */}
++        {artifact.examples && artifact.examples.length > 0 ? (
++          <div className="mt-4 text-left">
++            <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-500)]">
++              例句
++            </p>
++            <ul className="mt-2 space-y-2">
++              {artifact.examples.map((ex, idx) => (
++                <li
++                  key={idx}
++                  className="rounded-[var(--radius-soft)] bg-[var(--paper-100)] px-3 py-2 text-[13px] leading-[1.7] text-[var(--ink-700)]"
++                >
++                  {ex}
++                </li>
++              ))}
++            </ul>
++          </div>
++        ) : null}
++
++        {/* 记忆故事 */}
++        {artifact.story ? (
++          <div className="mt-4 rounded-[var(--radius-soft)] border border-dashed border-[var(--seal-300)] bg-[var(--seal-50)]/40 px-4 py-3 text-left">
++            <p className="text-[12px] font-semibold uppercase tracking-wide text-[var(--seal-500)]">
++              记忆故事
++            </p>
++            <p className="mt-1 font-[var(--font-display)] text-[13px] leading-[1.7] text-[var(--ink-800)]">
++              {artifact.story}
++            </p>
++          </div>
++        ) : null}
++      </div>
++    </article>
++  )
++}
+diff --git a/components/chat/v2/templates/WorksheetPosterTemplate.tsx b/components/chat/v2/templates/WorksheetPosterTemplate.tsx
+new file mode 100644
+index 0000000..8488b47
+--- /dev/null
++++ b/components/chat/v2/templates/WorksheetPosterTemplate.tsx
+@@ -0,0 +1,174 @@
++/**
++ * 🖌 v2 错题诊断海报模板
++ *
++ * A4 比例（4:3）卡片：
++ *   - 顶部标题 + 学生信息
++ *   - 中央大圆环（弱点 TOP 3）
++ *   - 下方训练计划清单
++ *   - 底部"今日训练"朱印章
++ */
++
++"use client"
++
++import * as React from "react"
++import { Download, Share2, AlertTriangle } from "lucide-react"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { SealStamp } from "@/components/ui/v2/seal"
++import { cn } from "@/lib/utils"
++import type { WorksheetDiagnosisArtifact } from "../types"
++
++export interface WorksheetPosterTemplateProps {
++  artifact: WorksheetDiagnosisArtifact
++  className?: string
++  onDownload?: () => void
++  onShare?: () => void
++}
++
++export function WorksheetPosterTemplate({
++  artifact,
++  className,
++  onDownload,
++  onShare,
++}: WorksheetPosterTemplateProps) {
++  const accuracy =
++    artifact.totalQuestions && artifact.totalQuestions > 0
++      ? Math.round(((artifact.totalQuestions - (artifact.wrongCount ?? 0)) / artifact.totalQuestions) * 100)
++      : null
++
++  return (
++    <article
++      data-slot="v2-worksheet-poster"
++      className={cn(
++        "relative w-full max-w-2xl overflow-hidden",
++        "bg-[var(--paper-50)] text-[var(--ink-900)]",
++        "border-2 border-[var(--ink-700)] rounded-[var(--radius-sharp)]",
++        "shadow-[var(--shadow-elevated)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      {/* 顶部 banner */}
++      <header className="relative border-b-2 border-double border-[var(--ink-700)] px-6 py-5 text-center">
++        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--ink-500)]">
++          错题诊断海报
++        </p>
++        <h1 className="mt-1 font-[var(--font-display)] text-[26px] font-black leading-tight text-[var(--ink-800)] sm:text-[30px]">
++          {[artifact.subject, artifact.grade].filter(Boolean).join(" · ") || "学习诊断"}
++        </h1>
++        {/* 朱印 */}
++        <div aria-hidden="true" className="absolute right-3 top-3">
++          <SealStamp size="sm" rotate={-8}>
++            训练
++          </SealStamp>
++        </div>
++      </header>
++
++      {/* 数据栏 */}
++      {(artifact.totalQuestions !== undefined || artifact.wrongCount !== undefined) ? (
++        <section className="grid grid-cols-3 gap-2 border-b border-[var(--paper-200)] bg-[var(--paper-100)] px-6 py-5 text-center">
++          <Stat label="总题数" value={artifact.totalQuestions ?? "—"} />
++          <Stat label="错题" value={artifact.wrongCount ?? "—"} tone="seal" />
++          <Stat label="正确率" value={accuracy != null ? `${accuracy}%` : "—"} tone="ink" />
++        </section>
++      ) : null}
++
++      {/* 弱点 TOP */}
++      {artifact.weakPoints && artifact.weakPoints.length > 0 ? (
++        <section className="border-b border-[var(--paper-200)] px-6 py-6 sm:px-8">
++          <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)] flex items-center gap-2">
++            <AlertTriangle className="size-4 text-[var(--seal-500)]" aria-hidden="true" />
++            薄弱点 TOP {artifact.weakPoints.length}
++          </h2>
++          <ul className="mt-4 space-y-2">
++            {artifact.weakPoints.slice(0, 5).map((wp, idx) => (
++              <li
++                key={idx}
++                className="flex items-baseline gap-3 rounded-[var(--radius-soft)] bg-[var(--seal-50)]/60 px-3 py-2.5"
++              >
++                <span className="font-[var(--font-mono-v2)] text-[12px] font-bold text-[var(--seal-500)]">
++                  #{idx + 1}
++                </span>
++                <span className="flex-1 font-[var(--font-display)] text-[15px] font-bold text-[var(--ink-800)]">
++                  {wp.topic}
++                </span>
++                <span className="font-[var(--font-mono-v2)] text-[12px] text-[var(--seal-500)]">
++                  错 {wp.wrongOf}
++                </span>
++              </li>
++            ))}
++          </ul>
++        </section>
++      ) : null}
++
++      {/* 训练计划 */}
++      {artifact.trainingPlan && artifact.trainingPlan.length > 0 ? (
++        <section className="border-b border-[var(--paper-200)] px-6 py-6 sm:px-8">
++          <h2 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++            今日训练计划
++          </h2>
++          <ul className="mt-4 space-y-3">
++            {artifact.trainingPlan.map((plan, idx) => (
++              <li key={idx}>
++                <h3 className="font-[var(--font-display)] text-[14px] font-bold text-[var(--ink-700)]">
++                  {idx + 1}. {plan.topic}
++                </h3>
++                <ul className="mt-1.5 space-y-1 pl-4">
++                  {plan.tasks.map((task, ti) => (
++                    <li
++                      key={ti}
++                      className="text-[13px] leading-[1.7] text-[var(--ink-600)] before:content-['·'] before:mr-2 before:text-[var(--ink-300)]"
++                    >
++                      {task}
++                    </li>
++                  ))}
++                </ul>
++              </li>
++            ))}
++          </ul>
++        </section>
++      ) : null}
++
++      {/* 工具栏 */}
++      <footer className="flex flex-wrap items-center gap-2 px-6 py-4 bg-[var(--paper-100)]">
++        <ButtonV2 variant="seal" size="sm" onClick={onDownload}>
++          <Download className="size-3.5" aria-hidden="true" />
++          下载海报
++        </ButtonV2>
++        <ButtonV2 variant="outline" size="sm" onClick={onShare}>
++          <Share2 className="size-3.5" aria-hidden="true" />
++          分享给家长
++        </ButtonV2>
++      </footer>
++
++      <div className="absolute bottom-2 right-3 font-[var(--font-display)] text-[10px] text-[var(--ink-300)] tracking-widest">
++        沈翔智学
++      </div>
++    </article>
++  )
++}
++
++function Stat({
++  label,
++  value,
++  tone = "ink",
++}: {
++  label: string
++  value: string | number
++  tone?: "ink" | "seal"
++}) {
++  return (
++    <div>
++      <div
++        className={cn(
++          "font-[var(--font-mono-v2)] text-[24px] font-bold tabular-nums sm:text-[28px]",
++          tone === "ink" ? "text-[var(--ink-800)]" : "text-[var(--seal-500)]"
++        )}
++      >
++        {value}
++      </div>
++      <div className="mt-0.5 text-[11px] uppercase tracking-wide text-[var(--ink-500)]">
++        {label}
++      </div>
++    </div>
++  )
++}
+diff --git a/components/chat/v2/templates/index.ts b/components/chat/v2/templates/index.ts
+new file mode 100644
+index 0000000..bf69e29
+--- /dev/null
++++ b/components/chat/v2/templates/index.ts
+@@ -0,0 +1,19 @@
++/**
++ * 🖌 v2 智能体产物模板总出口
++ *
++ * 4 种主模板（每个智能体的产物决定挑哪个）：
++ *   - EssayReviewTemplate     作文批改稿
++ *   - WorksheetPosterTemplate 错题诊断海报
++ *   - VocabCardTemplate       词境记忆卡
++ *   - FlashcardTemplate       闪卡
++ *   - MarkdownTemplate        默认 fallback
++ */
++
++export { EssayReviewTemplate, type EssayReviewTemplateProps } from "./EssayReviewTemplate"
++export {
++  WorksheetPosterTemplate,
++  type WorksheetPosterTemplateProps,
++} from "./WorksheetPosterTemplate"
++export { VocabCardTemplate, type VocabCardTemplateProps } from "./VocabCardTemplate"
++export { FlashcardTemplate, type FlashcardTemplateProps } from "./FlashcardTemplate"
++export { MarkdownTemplate, type MarkdownTemplateProps } from "./MarkdownTemplate"
+diff --git a/components/chat/v2/types.ts b/components/chat/v2/types.ts
+new file mode 100644
+index 0000000..35fa9cd
+--- /dev/null
++++ b/components/chat/v2/types.ts
+@@ -0,0 +1,108 @@
++/**
++ * 🖌 v2 chat 模板类型定义
++ */
++
++import type React from "react"
++
++/** 一条聊天消息 */
++export interface ChatMessageV2 {
++  id: string
++  role: "user" | "assistant" | "system"
++  content: string
++  /** 生成时长（毫秒） */
++  durationMs?: number
++  /** 流式是否完成 */
++  streaming?: boolean
++  /** 智能体类型，决定渲染模板 */
++  model?: string
++  /** 附件（图片/文件） */
++  attachments?: Array<{
++    type: "image" | "file" | "audio"
++    url: string
++    name?: string
++    size?: number
++  }>
++  /** 创建时间 */
++  createdAt?: string
++  /** AI 输出的结构化产物（用于批改稿/海报/卡片渲染） */
++  artifact?: ChatArtifact
++}
++
++/** 智能体输出的结构化产物 */
++export type ChatArtifact =
++  | EssayReviewArtifact
++  | WorksheetDiagnosisArtifact
++  | FlashcardArtifact
++  | VocabCardArtifact
++  | RawMarkdownArtifact
++
++export interface EssayReviewArtifact {
++  type: "essay-review"
++  title: string
++  grade?: string
++  wordCount?: number
++  score?: { value: number; total: number }
++  summary?: string
++  diagnosis?: Array<{ title: string; detail: string }>
++  suggestions?: string[]
++  trainingTasks?: string[]
++  finalDraft?: string
++  rawMarkdown?: string
++}
++
++export interface WorksheetDiagnosisArtifact {
++  type: "worksheet-diagnosis"
++  subject?: string
++  grade?: string
++  totalQuestions?: number
++  wrongCount?: number
++  weakPoints?: Array<{ topic: string; wrongOf: string; reason?: string }>
++  trainingPlan?: Array<{ topic: string; tasks: string[] }>
++  posterUrl?: string
++  rawMarkdown?: string
++}
++
++export interface FlashcardArtifact {
++  type: "flashcard"
++  cards: Array<{
++    front: string
++    back: string
++    hint?: string
++  }>
++}
++
++export interface VocabCardArtifact {
++  type: "vocab-card"
++  word: string
++  pronunciation?: string
++  meaning?: string
++  examples?: string[]
++  story?: string
++  raw?: string
++}
++
++export interface RawMarkdownArtifact {
++  type: "markdown"
++  rawMarkdown: string
++}
++
++/** 智能体定义 */
++export interface AgentDefinition {
++  /** 与现有 model key 一致 */
++  model: string
++  name: string
++  /** 短描述，用于 ModelSelector */
++  description: string
++  /** 大类：写作 / 教学 / 创作 / 学科 */
++  group: "writing" | "teaching" | "creative" | "subject" | "general"
++  /** 默认输出模板 */
++  artifactType: ChatArtifact["type"]
++  /** 价格说明 */
++  priceLabel?: string
++  /** 是否会员限定 */
++  memberOnly?: boolean
++  /** 颜色调（取自墨砚色板） */
++  toneClass?: string
++  /** 头像图标 */
++  icon?: React.ComponentType<{ className?: string }>
++}
+-- 
+2.50.1
+

@@ -1,0 +1,416 @@
+From 6419b7f64a5ddb76dda9cf2255ddc588dd6d0629 Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sun, 17 May 2026 01:59:37 +0000
+Subject: [PATCH 10/12] feat(pr6): v2 worksheet diagnosis + flashcard review
+ entry pages
+
+---
+ components/flashcards/v2/FlashcardsPageV2.tsx | 180 +++++++++++++++
+ .../v2/DiagnosisPageV2.tsx                    | 208 ++++++++++++++++++
+ 2 files changed, 388 insertions(+)
+ create mode 100644 components/flashcards/v2/FlashcardsPageV2.tsx
+ create mode 100644 components/worksheet-diagnosis/v2/DiagnosisPageV2.tsx
+
+diff --git a/components/flashcards/v2/FlashcardsPageV2.tsx b/components/flashcards/v2/FlashcardsPageV2.tsx
+new file mode 100644
+index 0000000..4c7add6
+--- /dev/null
++++ b/components/flashcards/v2/FlashcardsPageV2.tsx
+@@ -0,0 +1,180 @@
++/**
++ * 🖌 v2 闪卡复习入口页
++ *
++ * 视觉：
++ *   - 今日待复习数 + 已掌握数（朱印章数字）
++ *   - "开始复习" CTA → 进入 FlashcardTemplate 翻卡流程
++ *   - "生成新卡片" → 跳到 /chat/vocab-card
++ *   - 底部成就进度条
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import { BookOpen, Plus, RotateCcw } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { CardV2, CardV2Content } from "@/components/ui/v2/card"
++import { ProgressV2 } from "@/components/ui/v2/progress"
++import { SealStamp } from "@/components/ui/v2/seal"
++import { InkReveal, InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++export interface FlashcardsPageV2Props {
++  /** 今日待复习数 */
++  dueCount?: number
++  /** 已掌握总数 */
++  masteredCount?: number
++  /** 总卡片数 */
++  totalCount?: number
++  /** 今日已复习 */
++  todayReviewed?: number
++  /** 连续复习天数 */
++  streakDays?: number
++  /** 开始复习回调 */
++  onStartReview?: () => void
++  className?: string
++}
++
++export function FlashcardsPageV2({
++  dueCount = 0,
++  masteredCount = 0,
++  totalCount = 0,
++  todayReviewed = 0,
++  streakDays = 0,
++  onStartReview,
++  className,
++}: FlashcardsPageV2Props) {
++  const masteryPercent = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0
++
++  return (
++    <div
++      data-slot="v2-flashcards-page"
++      className={cn(
++        "mx-auto w-full max-w-3xl px-4 py-10 md:py-16",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      {/* 页面标题 */}
++      <InkReveal as="header" className="mb-10">
++        <h1 className="font-[var(--font-display)] text-[clamp(28px,5vw,40px)] font-black leading-[1.1] text-[var(--ink-800)]">
++          闪卡复习
++        </h1>
++        <p className="mt-2 text-[15px] leading-[1.7] text-[var(--ink-600)]">
++          间隔重复法帮你把知识点从短期记忆推到长期记忆。
++        </p>
++      </InkReveal>
++
++      {/* 数据卡三联 */}
++      <InkStagger stagger={0.08} className="grid gap-4 sm:grid-cols-3 mb-10">
++        <InkStaggerItem>
++          <StatCard
++            label="今日待复习"
++            value={dueCount}
++            icon={<RotateCcw className="size-4" />}
++            tone="seal"
++          />
++        </InkStaggerItem>
++        <InkStaggerItem>
++          <StatCard
++            label="已掌握"
++            value={masteredCount}
++            icon={<BookOpen className="size-4" />}
++            tone="ink"
++          />
++        </InkStaggerItem>
++        <InkStaggerItem>
++          <StatCard
++            label="连续复习"
++            value={`${streakDays} 天`}
++            icon={
++              <SealStamp size="xs" rotate={-3} className="size-6">
++                {streakDays}
++              </SealStamp>
++            }
++            tone="ink"
++          />
++        </InkStaggerItem>
++      </InkStagger>
++
++      {/* 掌握进度 */}
++      <InkReveal as="div" delay={0.1} className="mb-10">
++        <div className="flex items-center justify-between mb-2">
++          <span className="text-[13px] font-semibold text-[var(--ink-700)]">
++            总体掌握度
++          </span>
++          <span className="font-[var(--font-mono-v2)] text-[13px] font-bold text-[var(--ink-800)] tabular-nums">
++            {masteryPercent}%
++          </span>
++        </div>
++        <ProgressV2 value={masteryPercent} />
++        <p className="mt-2 text-[12px] text-[var(--ink-500)]">
++          已掌握 {masteredCount} / 总计 {totalCount} 张卡片
++        </p>
++      </InkReveal>
++
++      {/* CTA 双按钮 */}
++      <InkReveal as="div" delay={0.14} className="flex flex-wrap gap-3 justify-center">
++        <ButtonV2
++          variant="seal"
++          size="lg"
++          onClick={onStartReview}
++          disabled={dueCount === 0}
++          className="min-w-[180px]"
++        >
++          <RotateCcw className="size-4" />
++          {dueCount > 0 ? `开始复习 (${dueCount})` : "今日已完成"}
++        </ButtonV2>
++
++        <ButtonV2 asChild variant="outline" size="lg">
++          <Link href="/chat/vocab-card" prefetch={false}>
++            <Plus className="size-4" />
++            生成新卡片
++          </Link>
++        </ButtonV2>
++      </InkReveal>
++
++      {/* 今日统计 */}
++      {todayReviewed > 0 ? (
++        <InkReveal as="div" delay={0.18} className="mt-8 text-center">
++          <p className="text-[13px] text-[var(--ink-500)]">
++            今日已复习 <span className="font-[var(--font-mono-v2)] font-bold text-[var(--ink-800)]">{todayReviewed}</span> 张卡片
++          </p>
++        </InkReveal>
++      ) : null}
++    </div>
++  )
++}
++
++function StatCard({
++  label,
++  value,
++  icon,
++  tone = "ink",
++}: {
++  label: string
++  value: string | number
++  icon?: React.ReactNode
++  tone?: "ink" | "seal"
++}) {
++  return (
++    <CardV2 variant="paper" className="text-center">
++      <CardV2Content className="flex flex-col items-center gap-2 py-6">
++        <div className={cn(
++          "flex size-10 items-center justify-center rounded-full",
++          tone === "seal" ? "bg-[var(--seal-50)] text-[var(--seal-500)]" : "bg-[var(--ink-50)] text-[var(--ink-700)]"
++        )}>
++          {icon}
++        </div>
++        <div className={cn(
++          "font-[var(--font-mono-v2)] text-[28px] font-bold tabular-nums",
++          tone === "seal" ? "text-[var(--seal-500)]" : "text-[var(--ink-800)]"
++        )}>
++          {value}
++        </div>
++        <div className="text-[12px] text-[var(--ink-500)]">{label}</div>
++      </CardV2Content>
++    </CardV2>
++  )
++}
+diff --git a/components/worksheet-diagnosis/v2/DiagnosisPageV2.tsx b/components/worksheet-diagnosis/v2/DiagnosisPageV2.tsx
+new file mode 100644
+index 0000000..62259e5
+--- /dev/null
++++ b/components/worksheet-diagnosis/v2/DiagnosisPageV2.tsx
+@@ -0,0 +1,208 @@
++/**
++ * 🖌 v2 拍卷诊断入口页
++ *
++ * 视觉：
++ *   - 大标题（宋体）"上传试卷，看见薄弱点"
++ *   - 居中上传区（虚线边框 + 拖拽 + 点击）
++ *   - 底部"开始诊断"朱印按钮
++ *   - 结果用 WorksheetPosterTemplate 渲染（已在 PR5 实现）
++ */
++
++"use client"
++
++import * as React from "react"
++import { Camera, Upload } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { InkReveal } from "@/components/motion/InkMotion"
++
++export interface DiagnosisPageV2Props {
++  /** 上传回调（交给业务侧） */
++  onUpload?: (files: FileList) => void
++  /** 开始诊断 */
++  onAnalyze?: () => void
++  /** 当前已上传文件 */
++  files?: Array<{ name: string; previewUrl?: string }>
++  /** 诊断中 */
++  isAnalyzing?: boolean
++  /** 选择的科目 */
++  subject?: string
++  onSubjectChange?: (subject: string) => void
++  /** 选择的年级 */
++  grade?: string
++  onGradeChange?: (grade: string) => void
++  className?: string
++}
++
++const SUBJECTS = ["数学", "语文", "英语", "物理", "化学", "生物", "历史", "地理", "政治"]
++const GRADES = ["小学", "初一", "初二", "初三", "高一", "高二", "高三"]
++
++export function DiagnosisPageV2({
++  onUpload,
++  onAnalyze,
++  files = [],
++  isAnalyzing,
++  subject,
++  onSubjectChange,
++  grade,
++  onGradeChange,
++  className,
++}: DiagnosisPageV2Props) {
++  const inputRef = React.useRef<HTMLInputElement>(null)
++
++  function handleDrop(e: React.DragEvent) {
++    e.preventDefault()
++    if (e.dataTransfer.files.length > 0) {
++      onUpload?.(e.dataTransfer.files)
++    }
++  }
++
++  return (
++    <div
++      data-slot="v2-diagnosis-page"
++      className={cn(
++        "mx-auto w-full max-w-3xl px-4 py-10 md:py-16",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <InkReveal as="header" className="mb-10 text-center">
++        <h1 className="font-[var(--font-display)] text-[clamp(28px,5vw,44px)] font-black leading-[1.1] text-[var(--ink-800)]">
++          上传试卷，看见薄弱点
++        </h1>
++        <p className="mt-3 text-[15px] leading-[1.7] text-[var(--ink-600)] max-w-xl mx-auto">
++          拍照上传试卷图片（最多 9 张），AI 归因错题并生成训练建议海报。
++        </p>
++      </InkReveal>
++
++      {/* 科目 + 年级选择 */}
++      <InkReveal as="div" delay={0.08} className="mb-6 flex flex-wrap items-center justify-center gap-3">
++        <div className="flex items-center gap-2">
++          <span className="text-[13px] font-semibold text-[var(--ink-500)]">科目</span>
++          <div className="flex flex-wrap gap-1.5">
++            {SUBJECTS.map((s) => (
++              <button
++                key={s}
++                type="button"
++                onClick={() => onSubjectChange?.(s)}
++                className={cn(
++                  "px-2.5 py-1 rounded-[var(--radius-pill)] text-[12px] font-medium transition-colors duration-150",
++                  subject === s
++                    ? "bg-[var(--ink-700)] text-white"
++                    : "bg-[var(--paper-100)] text-[var(--ink-600)] border border-[var(--paper-300)] hover:bg-[var(--ink-50)]"
++                )}
++              >
++                {s}
++              </button>
++            ))}
++          </div>
++        </div>
++
++        <div className="flex items-center gap-2">
++          <span className="text-[13px] font-semibold text-[var(--ink-500)]">年级</span>
++          <div className="flex flex-wrap gap-1.5">
++            {GRADES.map((g) => (
++              <button
++                key={g}
++                type="button"
++                onClick={() => onGradeChange?.(g)}
++                className={cn(
++                  "px-2.5 py-1 rounded-[var(--radius-pill)] text-[12px] font-medium transition-colors duration-150",
++                  grade === g
++                    ? "bg-[var(--ink-700)] text-white"
++                    : "bg-[var(--paper-100)] text-[var(--ink-600)] border border-[var(--paper-300)] hover:bg-[var(--ink-50)]"
++                )}
++              >
++                {g}
++              </button>
++            ))}
++          </div>
++        </div>
++      </InkReveal>
++
++      {/* 上传区 */}
++      <InkReveal as="div" delay={0.12}>
++        <div
++          onDragOver={(e) => e.preventDefault()}
++          onDrop={handleDrop}
++          onClick={() => inputRef.current?.click()}
++          className={cn(
++            "flex cursor-pointer flex-col items-center justify-center gap-4",
++            "min-h-[240px] rounded-[var(--radius-card)]",
++            "border-2 border-dashed border-[var(--ink-300)]/50",
++            "bg-[var(--paper-100)]/60",
++            "transition-colors duration-200",
++            "hover:border-[var(--ink-500)] hover:bg-[var(--ink-50)]/40"
++          )}
++        >
++          <div className="flex size-14 items-center justify-center rounded-full bg-[var(--ink-50)] text-[var(--ink-700)]">
++            {files.length > 0 ? (
++              <Camera className="size-6" />
++            ) : (
++              <Upload className="size-6" />
++            )}
++          </div>
++          <div className="text-center">
++            <p className="font-[var(--font-display)] text-[16px] font-bold text-[var(--ink-700)]">
++              {files.length > 0
++                ? `已选 ${files.length} 张图片`
++                : "点击上传或拖入试卷图片"}
++            </p>
++            <p className="mt-1 text-[12px] text-[var(--ink-500)]">
++              支持 JPG / PNG / PDF · 最多 9 张 · 单张不超过 10MB
++            </p>
++          </div>
++          <input
++            ref={inputRef}
++            type="file"
++            accept="image/*,.pdf"
++            multiple
++            className="hidden"
++            onChange={(e) => {
++              if (e.target.files && e.target.files.length > 0) {
++                onUpload?.(e.target.files)
++              }
++            }}
++          />
++        </div>
++
++        {/* 已上传预览 */}
++        {files.length > 0 ? (
++          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
++            {files.map((f, idx) => (
++              <div
++                key={idx}
++                className="relative aspect-square overflow-hidden rounded-[var(--radius-soft)] border border-[var(--paper-200)] bg-[var(--paper-100)]"
++              >
++                {f.previewUrl ? (
++                  // eslint-disable-next-line @next/next/no-img-element
++                  <img src={f.previewUrl} alt={f.name} className="size-full object-cover" />
++                ) : (
++                  <div className="flex size-full items-center justify-center text-[11px] text-[var(--ink-500)]">
++                    {f.name.slice(0, 8)}
++                  </div>
++                )}
++              </div>
++            ))}
++          </div>
++        ) : null}
++      </InkReveal>
++
++      {/* 开始诊断 */}
++      <InkReveal as="div" delay={0.16} className="mt-8 text-center">
++        <ButtonV2
++          variant="seal"
++          size="lg"
++          onClick={onAnalyze}
++          disabled={files.length === 0 || isAnalyzing}
++          className="min-w-[200px]"
++        >
++          {isAnalyzing ? "诊断中..." : "开始诊断"}
++        </ButtonV2>
++        <p className="mt-3 text-[12px] text-[var(--ink-400)]">
++          约 45 秒 · 结果可下载为训练海报
++        </p>
++      </InkReveal>
++    </div>
++  )
++}
+-- 
+2.50.1
+

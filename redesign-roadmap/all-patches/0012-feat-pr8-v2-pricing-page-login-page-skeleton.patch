@@ -1,0 +1,252 @@
+From d168c2ab8c78b856696fbf57bee2531164ab26cb Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sun, 17 May 2026 02:01:19 +0000
+Subject: [PATCH 12/12] feat(pr8): v2 pricing page + login page skeleton
+
+---
+ components/auth/v2/LoginPageV2.tsx      |  74 ++++++++++++
+ components/pricing/v2/PricingPageV2.tsx | 151 ++++++++++++++++++++++++
+ 2 files changed, 225 insertions(+)
+ create mode 100644 components/auth/v2/LoginPageV2.tsx
+ create mode 100644 components/pricing/v2/PricingPageV2.tsx
+
+diff --git a/components/auth/v2/LoginPageV2.tsx b/components/auth/v2/LoginPageV2.tsx
+new file mode 100644
+index 0000000..64d3d4f
+--- /dev/null
++++ b/components/auth/v2/LoginPageV2.tsx
+@@ -0,0 +1,74 @@
++/**
++ * 🖌 v2 登录页面骨架
++ *
++ * 视觉：居中卡片（elevated） + 宋体标题 + 朱印"登录"按钮
++ * 实际登录逻辑仍由 Authing Guard 接管，本组件只是外壳包装
++ */
++
++"use client"
++
++import * as React from "react"
++import Image from "next/image"
++import { cn } from "@/lib/utils"
++import { CardV2, CardV2Content } from "@/components/ui/v2/card"
++import { InkReveal } from "@/components/motion/InkMotion"
++
++export interface LoginPageV2Props {
++  /** Authing Guard 挂载的容器 slot */
++  children?: React.ReactNode
++  className?: string
++}
++
++export function LoginPageV2({ children, className }: LoginPageV2Props) {
++  return (
++    <div
++      data-slot="v2-login-page"
++      className={cn(
++        "flex min-h-screen items-center justify-center",
++        "bg-[var(--paper-50)] px-4 py-10 font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <InkReveal as="div" className="w-full max-w-md">
++        <CardV2 variant="elevated" className="overflow-hidden">
++          {/* 顶部 logo 横幅 */}
++          <div className="flex items-center justify-center border-b border-[var(--paper-200)] bg-[var(--paper-100)] py-6">
++            <Image
++              src="/images/design-mode/home-logo-transparent.png"
++              alt="沈翔智学"
++              width={160}
++              height={40}
++              priority
++              className="h-10 w-auto object-contain"
++            />
++          </div>
++
++          <CardV2Content className="py-8">
++            <h1 className="text-center font-[var(--font-display)] text-[24px] font-bold text-[var(--ink-800)] mb-2">
++              欢迎回来
++            </h1>
++            <p className="text-center text-[14px] text-[var(--ink-500)] mb-6">
++              登录以继续使用沈翔智学
++            </p>
++
++            {/* Authing Guard 挂载点 */}
++            <div id="authing-guard-container">
++              {children}
++            </div>
++          </CardV2Content>
++        </CardV2>
++
++        <p className="mt-4 text-center text-[12px] text-[var(--ink-400)]">
++          继续即表示同意{" "}
++          <a href="/terms" className="underline underline-offset-2 hover:text-[var(--ink-600)]">
++            服务条款
++          </a>{" "}
++          和{" "}
++          <a href="/privacy" className="underline underline-offset-2 hover:text-[var(--ink-600)]">
++            隐私政策
++          </a>
++        </p>
++      </InkReveal>
++    </div>
++  )
++}
+diff --git a/components/pricing/v2/PricingPageV2.tsx b/components/pricing/v2/PricingPageV2.tsx
+new file mode 100644
+index 0000000..99480f1
+--- /dev/null
++++ b/components/pricing/v2/PricingPageV2.tsx
+@@ -0,0 +1,151 @@
++/**
++ * 🖌 v2 套餐与价格页
++ *
++ * 视觉：三张 paper card 并排（基础 / 专业 / 豪华）+ 底部 FAQ 折叠
++ *       当前方案用朱印"推荐"标记
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import { Check, Crown } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { CardV2, CardV2Content, CardV2Header, CardV2Title } from "@/components/ui/v2/card"
++import { BadgeV2 } from "@/components/ui/v2/badge"
++import { SealStamp } from "@/components/ui/v2/seal"
++import { InkReveal, InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++interface Plan {
++  id: string
++  name: string
++  price: string
++  period: string
++  credits: string
++  features: string[]
++  recommended?: boolean
++  cta: string
++}
++
++const PLANS: Plan[] = [
++  {
++    id: "basic",
++    name: "基础版",
++    price: "¥28",
++    period: "/ 月",
++    credits: "2,000 积分/月",
++    features: ["全部 22 个智能体", "作文批改 + 错题诊断", "历史记录保留"],
++    cta: "开始使用",
++  },
++  {
++    id: "pro",
++    name: "专业版",
++    price: "¥68",
++    period: "/ 月",
++    credits: "5,000 积分/月",
++    features: ["包含基础版所有功能", "GPT Image 2 (4K)", "闪卡无限生成", "优先响应"],
++    recommended: true,
++    cta: "升级专业版",
++  },
++  {
++    id: "premium",
++    name: "豪华版",
++    price: "¥128",
++    period: "/ 月",
++    credits: "12,000 积分/月",
++    features: ["包含专业版所有功能", "教师智能体", "自定义 Prompt", "数据导出", "专属客服"],
++    cta: "升级豪华版",
++  },
++]
++
++export interface PricingPageV2Props {
++  currentPlan?: string
++  className?: string
++}
++
++export function PricingPageV2({ currentPlan, className }: PricingPageV2Props) {
++  return (
++    <div
++      data-slot="v2-pricing-page"
++      className={cn("mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-20 font-[var(--font-sans-v2)]", className)}
++    >
++      <InkReveal as="header" className="text-center mb-12">
++        <h1 className="font-[var(--font-display)] text-[clamp(32px,5vw,48px)] font-black leading-[1.1] text-[var(--ink-800)]">
++          选择适合你的方案
++        </h1>
++        <p className="mt-3 text-[15px] leading-[1.7] text-[var(--ink-600)] max-w-lg mx-auto">
++          所有方案包含 22 个智能体。按月计费，随时取消。年付享 8 折。
++        </p>
++      </InkReveal>
++
++      <InkStagger stagger={0.1} className="grid gap-6 md:grid-cols-3">
++        {PLANS.map((plan) => (
++          <InkStaggerItem key={plan.id}>
++            <PlanCard plan={plan} isCurrent={currentPlan === plan.id} />
++          </InkStaggerItem>
++        ))}
++      </InkStagger>
++    </div>
++  )
++}
++
++function PlanCard({ plan, isCurrent }: { plan: Plan; isCurrent?: boolean }) {
++  return (
++    <CardV2
++      variant={plan.recommended ? "elevated" : "paper"}
++      className={cn(
++        "relative h-full",
++        plan.recommended && "ring-2 ring-[var(--seal-500)] ring-offset-2 ring-offset-[var(--paper-50)]"
++      )}
++    >
++      {plan.recommended ? (
++        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
++          <SealStamp size="sm" orientation="horizontal" rotate={-2}>推荐</SealStamp>
++        </div>
++      ) : null}
++
++      <CardV2Header className="text-center pt-8">
++        <CardV2Title className="text-[var(--ink-800)]">{plan.name}</CardV2Title>
++        <div className="mt-2 flex items-baseline justify-center gap-1">
++          <span className="font-[var(--font-display)] text-[36px] font-black text-[var(--ink-800)]">
++            {plan.price}
++          </span>
++          <span className="text-[14px] text-[var(--ink-500)]">{plan.period}</span>
++        </div>
++        <BadgeV2 variant="ink" className="mt-2">{plan.credits}</BadgeV2>
++      </CardV2Header>
++
++      <CardV2Content className="flex-1">
++        <ul className="space-y-3">
++          {plan.features.map((f, idx) => (
++            <li key={idx} className="flex items-start gap-2 text-[14px] text-[var(--ink-700)]">
++              <Check className="mt-0.5 size-4 shrink-0 text-[var(--ink-600)]" />
++              {f}
++            </li>
++          ))}
++        </ul>
++      </CardV2Content>
++
++      <div className="px-5 pb-6 sm:px-6">
++        {isCurrent ? (
++          <ButtonV2 variant="outline" size="lg" className="w-full" disabled>
++            <Crown className="size-4" />
++            当前方案
++          </ButtonV2>
++        ) : (
++          <ButtonV2
++            asChild
++            variant={plan.recommended ? "seal" : "primary"}
++            size="lg"
++            className="w-full"
++          >
++            <Link href={`/checkout/${plan.id}`} prefetch={false}>
++              {plan.cta}
++            </Link>
++          </ButtonV2>
++        )}
++      </div>
++    </CardV2>
++  )
++}
+-- 
+2.50.1
+

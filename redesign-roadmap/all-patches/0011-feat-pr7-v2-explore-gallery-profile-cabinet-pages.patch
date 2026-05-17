@@ -1,0 +1,360 @@
+From 3472497ac07989e42c87a120f844fde4ce51eeb6 Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sun, 17 May 2026 02:00:39 +0000
+Subject: [PATCH 11/12] feat(pr7): v2 explore gallery + profile cabinet pages
+
+---
+ components/explore/v2/ExplorePageV2.tsx  | 151 +++++++++++++++++++
+ components/settings/v2/ProfilePageV2.tsx | 182 +++++++++++++++++++++++
+ 2 files changed, 333 insertions(+)
+ create mode 100644 components/explore/v2/ExplorePageV2.tsx
+ create mode 100644 components/settings/v2/ProfilePageV2.tsx
+
+diff --git a/components/explore/v2/ExplorePageV2.tsx b/components/explore/v2/ExplorePageV2.tsx
+new file mode 100644
+index 0000000..13cf040
+--- /dev/null
++++ b/components/explore/v2/ExplorePageV2.tsx
+@@ -0,0 +1,151 @@
++/**
++ * 🖌 v2 创作广场入口页
++ *
++ * 视觉：作品长廊（masonry grid）+ hover 朱印浮现
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import { Eye, Heart, MessageCircle, Share2 } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { BadgeV2 } from "@/components/ui/v2/badge"
++import { CardV2 } from "@/components/ui/v2/card"
++import { InkReveal, InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++import { SealStamp } from "@/components/ui/v2/seal"
++
++export interface ExploreItem {
++  id: string
++  title: string
++  type: string
++  previewText?: string
++  authorName?: string
++  likeCount?: number
++  viewCount?: number
++  commentCount?: number
++  shareCode?: string
++  isFeatured?: boolean
++}
++
++export interface ExplorePageV2Props {
++  items?: ExploreItem[]
++  categories?: Array<{ key: string; label: string }>
++  activeCategory?: string
++  onCategoryChange?: (key: string) => void
++  className?: string
++}
++
++export function ExplorePageV2({
++  items = [],
++  categories = [
++    { key: "all", label: "全部" },
++    { key: "essay", label: "作文" },
++    { key: "flashcard", label: "闪卡" },
++    { key: "image", label: "图像" },
++    { key: "music", label: "音乐" },
++  ],
++  activeCategory = "all",
++  onCategoryChange,
++  className,
++}: ExplorePageV2Props) {
++  return (
++    <div
++      data-slot="v2-explore-page"
++      className={cn("mx-auto w-full max-w-7xl px-4 py-10 md:px-6 md:py-16 font-[var(--font-sans-v2)]", className)}
++    >
++      <InkReveal as="header" className="mb-8">
++        <h1 className="font-[var(--font-display)] text-[clamp(28px,5vw,40px)] font-black leading-[1.1] text-[var(--ink-800)]">
++          创作广场
++        </h1>
++        <p className="mt-2 text-[15px] leading-[1.7] text-[var(--ink-600)]">
++          发现大家用 AI 创作的作文批改、闪卡、图像和智能体对话。
++        </p>
++      </InkReveal>
++
++      {/* 分类筛选 */}
++      <InkReveal as="div" delay={0.06} className="mb-8 flex flex-wrap gap-2">
++        {categories.map((cat) => (
++          <button
++            key={cat.key}
++            type="button"
++            onClick={() => onCategoryChange?.(cat.key)}
++            className={cn(
++              "px-3 py-1.5 rounded-[var(--radius-pill)] text-[13px] font-medium transition-colors duration-150",
++              activeCategory === cat.key
++                ? "bg-[var(--ink-700)] text-white"
++                : "bg-[var(--paper-100)] text-[var(--ink-600)] border border-[var(--paper-300)] hover:bg-[var(--ink-50)]"
++            )}
++          >
++            {cat.label}
++          </button>
++        ))}
++      </InkReveal>
++
++      {/* 作品网格 */}
++      {items.length === 0 ? (
++        <div className="py-20 text-center text-[var(--ink-500)]">暂无内容</div>
++      ) : (
++        <InkStagger stagger={0.05} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
++          {items.map((item) => (
++            <InkStaggerItem key={item.id}>
++              <ExploreCard item={item} />
++            </InkStaggerItem>
++          ))}
++        </InkStagger>
++      )}
++    </div>
++  )
++}
++
++function ExploreCard({ item }: { item: ExploreItem }) {
++  return (
++    <Link
++      href={`/share/${item.shareCode ?? item.id}`}
++      prefetch={false}
++      className="group block outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)] rounded-[var(--radius-sharp)]"
++    >
++      <CardV2 variant="paper" interactive className="relative h-full overflow-hidden">
++        {/* 朱印悬浮 — hover 时出现 */}
++        <div
++          className="absolute right-3 top-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-10"
++          aria-hidden="true"
++        >
++          <SealStamp size="xs" rotate={8} label="赞" />
++        </div>
++
++        {/* 精选标签 */}
++        {item.isFeatured ? (
++          <div className="absolute left-3 top-3 z-10">
++            <BadgeV2 variant="seal">精选</BadgeV2>
++          </div>
++        ) : null}
++
++        <div className="px-5 pt-5 pb-4">
++          <BadgeV2 variant="paper" className="mb-3">{item.type}</BadgeV2>
++
++          <h3 className="font-[var(--font-display)] text-[16px] font-bold leading-[1.4] text-[var(--ink-800)] line-clamp-2">
++            {item.title}
++          </h3>
++
++          {item.previewText ? (
++            <p className="mt-2 text-[13px] leading-[1.6] text-[var(--ink-600)] line-clamp-3">
++              {item.previewText}
++            </p>
++          ) : null}
++
++          {/* 底部 meta */}
++          <div className="mt-4 flex items-center gap-4 text-[12px] text-[var(--ink-500)]">
++            {item.authorName ? (
++              <span className="font-medium">{item.authorName}</span>
++            ) : null}
++            <span className="flex items-center gap-1"><Eye className="size-3" />{item.viewCount ?? 0}</span>
++            <span className="flex items-center gap-1"><Heart className="size-3" />{item.likeCount ?? 0}</span>
++            <span className="flex items-center gap-1"><MessageCircle className="size-3" />{item.commentCount ?? 0}</span>
++          </div>
++        </div>
++      </CardV2>
++    </Link>
++  )
++}
+diff --git a/components/settings/v2/ProfilePageV2.tsx b/components/settings/v2/ProfilePageV2.tsx
+new file mode 100644
+index 0000000..4f0a1e8
+--- /dev/null
++++ b/components/settings/v2/ProfilePageV2.tsx
+@@ -0,0 +1,182 @@
++/**
++ * 🖌 v2 个人中心（档案柜）
++ *
++ * 三栏：身份卡 / 学习档案 / 成就墙
++ */
++
++"use client"
++
++import * as React from "react"
++import { Award, BookOpen, Calendar, Coins, Crown, LogOut } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { CardV2, CardV2Content } from "@/components/ui/v2/card"
++import { AvatarV2, AvatarV2Image, AvatarV2Fallback } from "@/components/ui/v2/avatar"
++import { BadgeV2 } from "@/components/ui/v2/badge"
++import { ProgressV2 } from "@/components/ui/v2/progress"
++import { SealStamp } from "@/components/ui/v2/seal"
++import { InkReveal, InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++export interface ProfilePageV2Props {
++  user?: {
++    name?: string
++    email?: string
++    avatar?: string
++    credits?: number
++    memberTier?: string
++    memberDaysLeft?: number
++  }
++  stats?: {
++    essaysReviewed?: number
++    flashcardsMastered?: number
++    mistakesArchived?: number
++    experimentsCompleted?: number
++    streakDays?: number
++  }
++  achievements?: Array<{ label: string; earned?: boolean }>
++  onLogout?: () => void
++  className?: string
++}
++
++export function ProfilePageV2({
++  user,
++  stats,
++  achievements = [],
++  onLogout,
++  className,
++}: ProfilePageV2Props) {
++  return (
++    <div
++      data-slot="v2-profile-page"
++      className={cn(
++        "mx-auto w-full max-w-6xl px-4 py-10 md:px-6 md:py-16 font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <InkReveal as="div" className="grid gap-6 lg:grid-cols-[280px_1fr_240px]">
++        {/* 左：身份卡 */}
++        <CardV2 variant="paper" className="self-start">
++          <CardV2Content className="flex flex-col items-center gap-4 py-8 text-center">
++            <AvatarV2 className="size-20">
++              {user?.avatar ? <AvatarV2Image src={user.avatar} alt={user.name ?? ""} /> : null}
++              <AvatarV2Fallback>{(user?.name ?? "U").slice(0, 1)}</AvatarV2Fallback>
++            </AvatarV2>
++
++            <div>
++              <h2 className="font-[var(--font-display)] text-[20px] font-bold text-[var(--ink-800)]">
++                {user?.name ?? "学习用户"}
++              </h2>
++              {user?.email ? (
++                <p className="mt-1 text-[12px] text-[var(--ink-500)]">{user.email}</p>
++              ) : null}
++            </div>
++
++            {/* 会员状态 */}
++            {user?.memberTier ? (
++              <BadgeV2 variant="seal">
++                <Crown className="size-3" />
++                {user.memberTier}
++                {user.memberDaysLeft ? ` · ${user.memberDaysLeft}天` : ""}
++              </BadgeV2>
++            ) : null}
++
++            {/* 积分 */}
++            <div className="mt-2 flex items-center gap-2 text-[var(--ink-700)]">
++              <Coins className="size-4" />
++              <span className="font-[var(--font-mono-v2)] text-[18px] font-bold tabular-nums">
++                {user?.credits?.toLocaleString() ?? 0}
++              </span>
++              <span className="text-[12px] text-[var(--ink-500)]">积分</span>
++            </div>
++
++            {/* 退出 */}
++            <ButtonV2 variant="ghost" size="sm" onClick={onLogout} className="mt-4">
++              <LogOut className="size-3.5" />
++              退出登录
++            </ButtonV2>
++          </CardV2Content>
++        </CardV2>
++
++        {/* 中：学习档案 */}
++        <div className="space-y-6">
++          <CardV2 variant="paper">
++            <CardV2Content>
++              <h3 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)] mb-4">
++                学习档案
++              </h3>
++              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
++                <ArchiveStat icon={<BookOpen className="size-4" />} label="已批改作文" value={stats?.essaysReviewed ?? 0} />
++                <ArchiveStat icon={<Award className="size-4" />} label="已掌握闪卡" value={stats?.flashcardsMastered ?? 0} />
++                <ArchiveStat icon={<Calendar className="size-4" />} label="错题归档" value={stats?.mistakesArchived ?? 0} />
++                <ArchiveStat icon={<Award className="size-4" />} label="实验完成" value={stats?.experimentsCompleted ?? 0} />
++              </div>
++            </CardV2Content>
++          </CardV2>
++
++          {/* 连续学习 */}
++          <CardV2 variant="inset">
++            <CardV2Content className="flex items-center gap-4">
++              <SealStamp size="sm" rotate={-4}>
++                {stats?.streakDays ?? 0}
++              </SealStamp>
++              <div>
++                <div className="font-[var(--font-display)] text-[16px] font-bold text-[var(--ink-800)]">
++                  连续学习 {stats?.streakDays ?? 0} 天
++                </div>
++                <p className="text-[13px] text-[var(--ink-500)]">
++                  坚持就是最好的学习方法。
++                </p>
++              </div>
++            </CardV2Content>
++          </CardV2>
++        </div>
++
++        {/* 右：成就墙 */}
++        <div className="self-start">
++          <h3 className="font-[var(--font-display)] text-[14px] font-bold text-[var(--ink-800)] mb-4">
++            成就章
++          </h3>
++          <InkStagger stagger={0.06} className="grid grid-cols-3 gap-3 lg:grid-cols-2">
++            {achievements.map((ach, idx) => (
++              <InkStaggerItem key={idx}>
++                <div
++                  className={cn(
++                    "flex flex-col items-center gap-1 text-center",
++                    !ach.earned && "opacity-30 grayscale"
++                  )}
++                >
++                  <SealStamp size="sm" rotate={-2 + idx * 3}>
++                    {ach.label.slice(0, 2)}
++                  </SealStamp>
++                  <span className="text-[10px] text-[var(--ink-600)]">{ach.label}</span>
++                </div>
++              </InkStaggerItem>
++            ))}
++          </InkStagger>
++        </div>
++      </InkReveal>
++    </div>
++  )
++}
++
++function ArchiveStat({
++  icon,
++  label,
++  value,
++}: {
++  icon: React.ReactNode
++  label: string
++  value: number
++}) {
++  return (
++    <div className="text-center">
++      <div className="mx-auto mb-2 flex size-9 items-center justify-center rounded-full bg-[var(--ink-50)] text-[var(--ink-700)]">
++        {icon}
++      </div>
++      <div className="font-[var(--font-mono-v2)] text-[20px] font-bold tabular-nums text-[var(--ink-800)]">
++        {value}
++      </div>
++      <div className="text-[11px] text-[var(--ink-500)]">{label}</div>
++    </div>
++  )
++}
+-- 
+2.50.1
+

@@ -1,0 +1,851 @@
+From 5a50c9a87f6e3c1ec9cdf2f99f3a32037f9455a0 Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sat, 16 May 2026 19:05:14 +0000
+Subject: [PATCH 07/12] feat(chrome-v2): add MarketingShell + WorkspaceShell
+ platform skeletons
+
+---
+ components/v2-chrome/MarketingFooter.tsx  | 119 ++++++++++++++
+ components/v2-chrome/MarketingHeader.tsx  | 191 ++++++++++++++++++++++
+ components/v2-chrome/MarketingShell.tsx   |  54 ++++++
+ components/v2-chrome/WorkspaceShell.tsx   | 111 +++++++++++++
+ components/v2-chrome/WorkspaceSidebar.tsx | 179 ++++++++++++++++++++
+ components/v2-chrome/WorkspaceTopBar.tsx  | 114 +++++++++++++
+ components/v2-chrome/index.ts             |  15 ++
+ 7 files changed, 783 insertions(+)
+ create mode 100644 components/v2-chrome/MarketingFooter.tsx
+ create mode 100644 components/v2-chrome/MarketingHeader.tsx
+ create mode 100644 components/v2-chrome/MarketingShell.tsx
+ create mode 100644 components/v2-chrome/WorkspaceShell.tsx
+ create mode 100644 components/v2-chrome/WorkspaceSidebar.tsx
+ create mode 100644 components/v2-chrome/WorkspaceTopBar.tsx
+ create mode 100644 components/v2-chrome/index.ts
+
+diff --git a/components/v2-chrome/MarketingFooter.tsx b/components/v2-chrome/MarketingFooter.tsx
+new file mode 100644
+index 0000000..5371b1d
+--- /dev/null
++++ b/components/v2-chrome/MarketingFooter.tsx
+@@ -0,0 +1,119 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」营销页面页脚
++ *
++ * 视觉：米白底 + 4 列链接 + 底部版权一行
++ */
++
++import * as React from "react"
++import Link from "next/link"
++import Image from "next/image"
++import { cn } from "@/lib/utils"
++
++const FOOTER_LINKS = {
++  product: {
++    title: "产品",
++    links: [
++      { label: "全部智能体", href: "/chat" },
++      { label: "作文批改", href: "/chat/standard" },
++      { label: "拍卷诊断", href: "/worksheet-diagnosis" },
++      { label: "闪卡复习", href: "/flashcards" },
++      { label: "互动实验室", href: "/lab" },
++    ],
++  },
++  resources: {
++    title: "资源",
++    links: [
++      { label: "创作广场", href: "/explore" },
++      { label: "套餐与价格", href: "/pricing" },
++      { label: "帮助中心", href: "/help" },
++      { label: "邀请好友", href: "/invite" },
++    ],
++  },
++  company: {
++    title: "关于",
++    links: [
++      { label: "关于我们", href: "/about" },
++      { label: "面向家长", href: "/parent" },
++      { label: "面向教师", href: "/teacher" },
++    ],
++  },
++  legal: {
++    title: "法律",
++    links: [
++      { label: "服务条款", href: "/terms" },
++      { label: "隐私政策", href: "/privacy" },
++      { label: "退款政策", href: "/refund-policy" },
++    ],
++  },
++} as const
++
++export function MarketingFooter({ className }: { className?: string }) {
++  return (
++    <footer
++      data-slot="v2-marketing-footer"
++      className={cn(
++        "border-t border-[var(--paper-200)] bg-[var(--paper-50)]",
++        "font-[var(--font-sans-v2)]",
++        className
++      )}
++    >
++      <div className="mx-auto w-full max-w-7xl px-4 py-12 md:px-6 md:py-16">
++        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
++          {/* 品牌列 */}
++          <div className="col-span-2 md:col-span-1">
++            <Link href="/" prefetch={false} className="inline-block mb-3">
++              <Image
++                src="/images/design-mode/home-logo-transparent.png"
++                alt="沈翔智学"
++                width={140}
++                height={32}
++                className="h-8 w-auto object-contain"
++              />
++            </Link>
++            <p className="text-[13px] leading-[1.7] text-[var(--ink-500)]">
++              上传材料，看见能拿走的学习成果。
++            </p>
++            <p className="mt-4 text-[12px] leading-[1.6] text-[var(--ink-400)]">
++              客服：support@shenxiang.school
++            </p>
++          </div>
++
++          {/* 链接列 */}
++          {Object.values(FOOTER_LINKS).map((section) => (
++            <div key={section.title}>
++              <h4 className="mb-4 text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)]">
++                {section.title}
++              </h4>
++              <ul className="space-y-3">
++                {section.links.map((link) => (
++                  <li key={link.href}>
++                    <Link
++                      href={link.href}
++                      prefetch={false}
++                      className="text-[14px] text-[var(--ink-700)] transition-colors duration-200 hover:text-[var(--ink-900)] hover:underline underline-offset-[3px]"
++                    >
++                      {link.label}
++                    </Link>
++                  </li>
++                ))}
++              </ul>
++            </div>
++          ))}
++        </div>
++
++        {/* 分隔线 */}
++        <div className="mt-12 h-px w-full bg-[var(--paper-200)]" />
++
++        {/* 版权 */}
++        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
++          <p className="text-[12px] text-[var(--ink-400)]">
++            © {new Date().getFullYear()} 沈翔智学 · All rights reserved.
++          </p>
++          <p className="text-[12px] text-[var(--ink-400)] font-[var(--font-mono-v2)]">
++            shenxiang.school
++          </p>
++        </div>
++      </div>
++    </footer>
++  )
++}
+diff --git a/components/v2-chrome/MarketingHeader.tsx b/components/v2-chrome/MarketingHeader.tsx
+new file mode 100644
+index 0000000..f93e95c
+--- /dev/null
++++ b/components/v2-chrome/MarketingHeader.tsx
+@@ -0,0 +1,191 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」营销页面顶栏
++ *
++ * 用于：首页 / about / pricing / parent / teacher 等无侧栏的公开页
++ * 不用于：已登录的工作台路径（那些走 AppSidebar）
++ *
++ * 视觉：
++ *   - 米白底 + 1px 墨色细线
++ *   - 滚动后自动加 paper 阴影
++ *   - 移动端汉堡菜单 + 桌面端文字导航
++ *   - 右侧"登录 / 开始使用"双 CTA
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import Image from "next/image"
++import { usePathname } from "next/navigation"
++import { Menu, X } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { SheetV2, SheetV2Content, SheetV2Trigger } from "@/components/ui/v2/sheet"
++
++const NAV_ITEMS = [
++  { label: "智能体", href: "/chat" },
++  { label: "拍卷诊断", href: "/worksheet-diagnosis" },
++  { label: "创作广场", href: "/explore" },
++  { label: "套餐", href: "/pricing" },
++  { label: "帮助", href: "/help" },
++] as const
++
++export interface MarketingHeaderProps {
++  /** 用户已登录时显示的名字 / 头像（前端从 localStorage 兼容拿） */
++  user?: { name?: string; avatar?: string } | null
++  /** 自定义类名 */
++  className?: string
++}
++
++export function MarketingHeader({ user, className }: MarketingHeaderProps) {
++  const [scrolled, setScrolled] = React.useState(false)
++  const [open, setOpen] = React.useState(false)
++  const pathname = usePathname()
++
++  React.useEffect(() => {
++    function onScroll() {
++      setScrolled(window.scrollY > 8)
++    }
++    onScroll()
++    window.addEventListener("scroll", onScroll, { passive: true })
++    return () => window.removeEventListener("scroll", onScroll)
++  }, [])
++
++  return (
++    <header
++      data-slot="v2-marketing-header"
++      className={cn(
++        "sticky top-0 z-40 w-full",
++        "bg-[var(--paper-50)]/85 backdrop-blur-md",
++        "border-b border-[var(--paper-200)]",
++        "transition-shadow duration-300",
++        scrolled && "shadow-[0_1px_0_var(--paper-200),_0_4px_16px_-8px_rgba(14,27,17,0.08)]",
++        className
++      )}
++    >
++      <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-4 md:px-6">
++        {/* 品牌 */}
++        <Link
++          href="/"
++          prefetch={false}
++          className="flex items-center gap-2 outline-none focus-visible:[box-shadow:var(--shadow-focus-ink)] rounded-[var(--radius-sharp)]"
++        >
++          <Image
++            src="/images/design-mode/home-logo-transparent.png"
++            alt="沈翔智学"
++            width={140}
++            height={32}
++            priority
++            className="h-8 w-auto object-contain"
++          />
++        </Link>
++
++        {/* 桌面端导航 */}
++        <nav className="hidden md:flex items-center gap-1 ml-2">
++          {NAV_ITEMS.map((item) => {
++            const active =
++              item.href === "/"
++                ? pathname === "/"
++                : pathname?.startsWith(item.href) ?? false
++            return (
++              <Link
++                key={item.href}
++                href={item.href}
++                prefetch={false}
++                className={cn(
++                  "px-3 py-2 text-[14px] rounded-[var(--radius-pill)] font-[var(--font-sans-v2)] transition-colors duration-200",
++                  active
++                    ? "text-[var(--ink-800)] font-semibold"
++                    : "text-[var(--ink-500)] hover:text-[var(--ink-700)] hover:bg-[var(--ink-50)]"
++                )}
++              >
++                {item.label}
++              </Link>
++            )
++          })}
++        </nav>
++
++        {/* 右侧 CTA */}
++        <div className="ml-auto flex items-center gap-2">
++          {user ? (
++            <Link href="/settings" prefetch={false} className="hidden md:flex items-center gap-2">
++              <span className="font-[var(--font-sans-v2)] text-[14px] text-[var(--ink-700)]">
++                {user.name ?? "我的账户"}
++              </span>
++            </Link>
++          ) : (
++            <>
++              <ButtonV2 asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
++                <Link href="/login" prefetch={false}>
++                  登录
++                </Link>
++              </ButtonV2>
++              <ButtonV2 asChild variant="primary" size="sm" className="hidden sm:inline-flex">
++                <Link href="/chat/standard" prefetch={false}>
++                  开始使用
++                </Link>
++              </ButtonV2>
++            </>
++          )}
++
++          {/* 移动端菜单 */}
++          <SheetV2 open={open} onOpenChange={setOpen}>
++            <SheetV2Trigger asChild>
++              <ButtonV2 variant="ghost" size="icon-sm" className="md:hidden" aria-label="菜单">
++                <Menu className="size-5" />
++              </ButtonV2>
++            </SheetV2Trigger>
++            <SheetV2Content side="right" className="w-[88vw] max-w-sm">
++              <div className="flex h-full flex-col">
++                <div className="flex items-center justify-between px-6 pt-6 pb-3">
++                  <Image
++                    src="/images/design-mode/home-logo-transparent.png"
++                    alt="沈翔智学"
++                    width={120}
++                    height={28}
++                    className="h-7 w-auto object-contain"
++                  />
++                  <ButtonV2
++                    variant="ghost"
++                    size="icon-sm"
++                    onClick={() => setOpen(false)}
++                    aria-label="关闭"
++                  >
++                    <X className="size-5" />
++                  </ButtonV2>
++                </div>
++
++                <nav className="flex flex-col gap-1 px-3 py-4">
++                  {NAV_ITEMS.map((item) => (
++                    <Link
++                      key={item.href}
++                      href={item.href}
++                      prefetch={false}
++                      onClick={() => setOpen(false)}
++                      className="px-4 py-3 rounded-[var(--radius-soft)] font-[var(--font-sans-v2)] text-[15px] text-[var(--ink-700)] hover:bg-[var(--ink-50)]"
++                    >
++                      {item.label}
++                    </Link>
++                  ))}
++                </nav>
++
++                <div className="mt-auto px-6 pb-6 flex flex-col gap-3">
++                  <ButtonV2 asChild variant="primary" size="lg" className="w-full">
++                    <Link href="/chat/standard" prefetch={false} onClick={() => setOpen(false)}>
++                      开始使用
++                    </Link>
++                  </ButtonV2>
++                  <ButtonV2 asChild variant="outline" size="lg" className="w-full">
++                    <Link href="/login" prefetch={false} onClick={() => setOpen(false)}>
++                      登录
++                    </Link>
++                  </ButtonV2>
++                </div>
++              </div>
++            </SheetV2Content>
++          </SheetV2>
++        </div>
++      </div>
++    </header>
++  )
++}
+diff --git a/components/v2-chrome/MarketingShell.tsx b/components/v2-chrome/MarketingShell.tsx
+new file mode 100644
+index 0000000..8848827
+--- /dev/null
++++ b/components/v2-chrome/MarketingShell.tsx
+@@ -0,0 +1,54 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」营销页面骨架
++ *
++ * 用法（包裹整个营销页面）：
++ *   <MarketingShell>
++ *     <HeroSection />
++ *     <CapabilitiesSection />
++ *     ...
++ *   </MarketingShell>
++ *
++ * 包含：MarketingHeader（顶栏）+ children（内容）+ MarketingFooter（页脚）
++ *
++ * 关于侧栏：
++ *   - 营销页 (/, /about, /pricing, /parent, /teacher 等) **不**走 AppSidebar
++ *   - 通过 lib/app-chrome-routes.ts 决定哪些路径走 sidebar，哪些走 MarketingShell
++ *   - 本组件本身不耦合鉴权
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { MarketingHeader } from "./MarketingHeader"
++import { MarketingFooter } from "./MarketingFooter"
++
++export interface MarketingShellProps {
++  children: React.ReactNode
++  className?: string
++  /** 是否隐藏页脚（极少数全屏体验场景） */
++  hideFooter?: boolean
++  /** 是否隐藏顶栏（错误页 / 单纯 dialog 路径） */
++  hideHeader?: boolean
++}
++
++export function MarketingShell({
++  children,
++  className,
++  hideFooter,
++  hideHeader,
++}: MarketingShellProps) {
++  return (
++    <div
++      data-slot="v2-marketing-shell"
++      className={cn(
++        "flex min-h-screen flex-col bg-[var(--paper-50)] text-[var(--ink-900)]",
++        className
++      )}
++    >
++      {!hideHeader ? <MarketingHeader /> : null}
++      <main id="main-content" className="flex-1">
++        {children}
++      </main>
++      {!hideFooter ? <MarketingFooter /> : null}
++    </div>
++  )
++}
+diff --git a/components/v2-chrome/WorkspaceShell.tsx b/components/v2-chrome/WorkspaceShell.tsx
+new file mode 100644
+index 0000000..603a119
+--- /dev/null
++++ b/components/v2-chrome/WorkspaceShell.tsx
+@@ -0,0 +1,111 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」工作台外壳
++ *
++ * 用于：所有登录用户使用的工作台路径
++ *   /chat、/dashboard、/flashcards、/history、/credits、/settings、
++ *   /worksheet-diagnosis、/explore、/teacher/agents、/folder
++ *
++ * 三栏式布局：
++ *   ┌──────────────────────────────────────────┐
++ *   │ WorkspaceTopBar (高 56px sticky)          │
++ *   ├────┬─────────────────────────────┬───────┤
++ *   │ 侧 │           主区               │ 右侧抽│
++ *   │ 栏 │           main               │ 屉    │
++ *   │    │                              │ slot  │
++ *   └────┴─────────────────────────────┴───────┘
++ *
++ * Sidebar 默认 240px / 折叠后 64px / 移动端隐藏
++ * 右侧抽屉默认隐藏，业务可注入
++ */
++
++"use client"
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { WorkspaceTopBar } from "./WorkspaceTopBar"
++import { WorkspaceSidebar, type WorkspaceSidebarSection } from "./WorkspaceSidebar"
++
++export interface WorkspaceShellProps {
++  children: React.ReactNode
++  /** 侧栏配置 */
++  sidebarSections?: WorkspaceSidebarSection[]
++  /** 顶栏中央显示的页面标题 */
++  pageTitle?: React.ReactNode
++  /** 顶栏右侧 user 数据 */
++  user?: { name?: string; avatar?: string; credits?: number } | null
++  /** 右侧固定抽屉（用于 chat 的产物面板） */
++  rightDrawer?: React.ReactNode
++  /** 移动端汉堡菜单是否显示侧栏 */
++  className?: string
++}
++
++export function WorkspaceShell({
++  children,
++  sidebarSections,
++  pageTitle,
++  user,
++  rightDrawer,
++  className,
++}: WorkspaceShellProps) {
++  const [sidebarOpen, setSidebarOpen] = React.useState(false)
++
++  return (
++    <div
++      data-slot="v2-workspace-shell"
++      className={cn(
++        "flex h-screen w-full flex-col overflow-hidden bg-[var(--paper-50)] text-[var(--ink-900)]",
++        className
++      )}
++    >
++      <WorkspaceTopBar
++        pageTitle={pageTitle}
++        user={user}
++        onMenuClick={() => setSidebarOpen((v) => !v)}
++        sidebarOpen={sidebarOpen}
++      />
++
++      <div className="flex flex-1 overflow-hidden">
++        {/* 桌面侧栏 */}
++        <WorkspaceSidebar
++          sections={sidebarSections}
++          className="hidden md:flex"
++        />
++
++        {/* 移动端侧栏 */}
++        {sidebarOpen ? (
++          <div
++            className="fixed inset-0 z-30 bg-[rgba(14,27,17,0.4)] backdrop-blur-[2px] md:hidden"
++            onClick={() => setSidebarOpen(false)}
++            aria-hidden="true"
++          >
++            <div
++              className="absolute inset-y-0 left-0 w-[80vw] max-w-xs animate-in slide-in-from-left duration-300 ease-[var(--ease-paper-fold)]"
++              onClick={(e) => e.stopPropagation()}
++            >
++              <WorkspaceSidebar
++                sections={sidebarSections}
++                onItemClick={() => setSidebarOpen(false)}
++                className="flex h-full"
++              />
++            </div>
++          </div>
++        ) : null}
++
++        {/* 主内容 */}
++        <main
++          id="main-content"
++          className="flex-1 overflow-auto"
++        >
++          {children}
++        </main>
++
++        {/* 右侧抽屉 */}
++        {rightDrawer ? (
++          <aside className="hidden lg:block w-80 border-l border-[var(--paper-200)] bg-[var(--paper-50)]">
++            {rightDrawer}
++          </aside>
++        ) : null}
++      </div>
++    </div>
++  )
++}
+diff --git a/components/v2-chrome/WorkspaceSidebar.tsx b/components/v2-chrome/WorkspaceSidebar.tsx
+new file mode 100644
+index 0000000..0292715
+--- /dev/null
++++ b/components/v2-chrome/WorkspaceSidebar.tsx
+@@ -0,0 +1,179 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」工作台侧栏
++ *
++ * 视觉：
++ *   - 米白底 + 1px 右侧分隔
++ *   - 分组标题用宋体小字
++ *   - active 项墨绿色背景 + 朱印红圆点（左侧 4px 圆点）
++ *   - 折叠态保持 64px 宽，仅显示图标
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import { usePathname } from "next/navigation"
++import { ChevronLeft, type LucideIcon } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++
++export interface WorkspaceSidebarItem {
++  label: string
++  href: string
++  icon?: LucideIcon | React.ComponentType<{ className?: string }>
++  badge?: string
++}
++
++export interface WorkspaceSidebarSection {
++  title?: string
++  items: WorkspaceSidebarItem[]
++}
++
++export interface WorkspaceSidebarProps {
++  sections?: WorkspaceSidebarSection[]
++  /** 折叠状态（持久化由调用方做） */
++  collapsed?: boolean
++  onToggleCollapse?: () => void
++  /** 移动端用：点击 item 后通知父组件关闭侧栏 */
++  onItemClick?: () => void
++  className?: string
++}
++
++const DEFAULT_SECTIONS: WorkspaceSidebarSection[] = [
++  {
++    title: "学习",
++    items: [
++      { label: "对话", href: "/chat" },
++      { label: "拍卷诊断", href: "/worksheet-diagnosis" },
++      { label: "闪卡复习", href: "/flashcards" },
++      { label: "互动实验室", href: "/lab" },
++    ],
++  },
++  {
++    title: "我的",
++    items: [
++      { label: "学习看板", href: "/dashboard" },
++      { label: "历史记录", href: "/history" },
++      { label: "资料夹", href: "/folder" },
++      { label: "积分", href: "/credits" },
++    ],
++  },
++  {
++    title: "社区",
++    items: [
++      { label: "创作广场", href: "/explore" },
++      { label: "我的分享", href: "/my/shares" },
++      { label: "邀请好友", href: "/invite" },
++    ],
++  },
++]
++
++export function WorkspaceSidebar({
++  sections = DEFAULT_SECTIONS,
++  collapsed = false,
++  onToggleCollapse,
++  onItemClick,
++  className,
++}: WorkspaceSidebarProps) {
++  const pathname = usePathname()
++
++  return (
++    <aside
++      data-slot="v2-workspace-sidebar"
++      className={cn(
++        "flex w-60 shrink-0 flex-col bg-[var(--paper-50)] border-r border-[var(--paper-200)]",
++        "font-[var(--font-sans-v2)]",
++        collapsed && "w-16",
++        className
++      )}
++    >
++      {/* 顶部 "新对话" 主 CTA */}
++      <div className="px-3 pt-4 pb-2">
++        <ButtonV2
++          asChild
++          variant="primary"
++          size="default"
++          className="w-full justify-start gap-2"
++        >
++          <Link href="/chat" prefetch={false} onClick={onItemClick}>
++            <span aria-hidden="true">＋</span>
++            {!collapsed ? "新对话" : null}
++          </Link>
++        </ButtonV2>
++      </div>
++
++      {/* 滚动分组列表 */}
++      <nav className="flex-1 overflow-auto px-2 py-2">
++        {sections.map((section, idx) => (
++          <div key={section.title ?? idx} className="mb-4">
++            {section.title && !collapsed ? (
++              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-400)]">
++                {section.title}
++              </div>
++            ) : null}
++            <ul className="space-y-0.5">
++              {section.items.map((item) => {
++                const Icon = item.icon
++                const active = pathname === item.href || pathname?.startsWith(`${item.href}/`)
++                return (
++                  <li key={item.href}>
++                    <Link
++                      href={item.href}
++                      prefetch={false}
++                      onClick={onItemClick}
++                      className={cn(
++                        "group relative flex items-center gap-3 px-3 py-2 rounded-[var(--radius-soft)] text-[14px]",
++                        "transition-colors duration-200",
++                        active
++                          ? "bg-[var(--ink-50)] text-[var(--ink-800)] font-semibold"
++                          : "text-[var(--ink-600)] hover:bg-[var(--ink-50)]/60 hover:text-[var(--ink-700)]"
++                      )}
++                    >
++                      {/* active 指示朱印红圆点 */}
++                      {active ? (
++                        <span
++                          className="absolute left-0 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-[var(--seal-500)]"
++                          aria-hidden="true"
++                        />
++                      ) : null}
++                      {Icon ? (
++                        <Icon className="size-4 shrink-0" aria-hidden="true" />
++                      ) : (
++                        <span className="size-4" aria-hidden="true" />
++                      )}
++                      {!collapsed ? (
++                        <>
++                          <span className="flex-1 truncate">{item.label}</span>
++                          {item.badge ? (
++                            <span className="text-[11px] px-1.5 py-0.5 rounded-[var(--radius-pill)] bg-[var(--seal-50)] text-[var(--seal-600)] font-mono">
++                              {item.badge}
++                            </span>
++                          ) : null}
++                        </>
++                      ) : null}
++                    </Link>
++                  </li>
++                )
++              })}
++            </ul>
++          </div>
++        ))}
++      </nav>
++
++      {/* 底部折叠按钮 */}
++      {onToggleCollapse ? (
++        <div className="border-t border-[var(--paper-200)] p-2">
++          <ButtonV2
++            variant="ghost"
++            size="icon-sm"
++            onClick={onToggleCollapse}
++            aria-label={collapsed ? "展开侧栏" : "折叠侧栏"}
++            className={cn(collapsed && "rotate-180", "transition-transform duration-300")}
++          >
++            <ChevronLeft className="size-4" />
++          </ButtonV2>
++        </div>
++      ) : null}
++    </aside>
++  )
++}
+diff --git a/components/v2-chrome/WorkspaceTopBar.tsx b/components/v2-chrome/WorkspaceTopBar.tsx
+new file mode 100644
+index 0000000..0491d81
+--- /dev/null
++++ b/components/v2-chrome/WorkspaceTopBar.tsx
+@@ -0,0 +1,114 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」工作台顶栏
++ *
++ * 56px sticky 顶栏：
++ *   - 左：汉堡菜单（移动端） + 品牌 logo / 当前页面标题
++ *   - 中：（可选）面包屑或子标签
++ *   - 右：积分余额 + 用户头像下拉
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import Image from "next/image"
++import { Menu, Coins } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { AvatarV2, AvatarV2Image, AvatarV2Fallback } from "@/components/ui/v2/avatar"
++
++export interface WorkspaceTopBarProps {
++  pageTitle?: React.ReactNode
++  user?: { name?: string; avatar?: string; credits?: number } | null
++  onMenuClick?: () => void
++  sidebarOpen?: boolean
++  className?: string
++}
++
++export function WorkspaceTopBar({
++  pageTitle,
++  user,
++  onMenuClick,
++  className,
++}: WorkspaceTopBarProps) {
++  return (
++    <header
++      data-slot="v2-workspace-topbar"
++      className={cn(
++        "sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-[var(--paper-200)] bg-[var(--paper-50)]/85 px-3 backdrop-blur-md md:px-4",
++        className
++      )}
++    >
++      {/* 移动端菜单按钮 */}
++      <ButtonV2
++        variant="ghost"
++        size="icon-sm"
++        className="md:hidden"
++        onClick={onMenuClick}
++        aria-label="打开侧栏菜单"
++      >
++        <Menu className="size-5" />
++      </ButtonV2>
++
++      {/* 品牌 + 页面标题 */}
++      <div className="flex items-center gap-3 min-w-0 flex-1">
++        <Link href="/" prefetch={false} className="hidden md:flex shrink-0">
++          <Image
++            src="/images/design-mode/home-logo-transparent.png"
++            alt="沈翔智学"
++            width={120}
++            height={28}
++            priority
++            className="h-7 w-auto object-contain"
++          />
++        </Link>
++
++        {pageTitle ? (
++          <>
++            <span
++              className="hidden md:block h-5 w-px bg-[var(--paper-300)]"
++              aria-hidden="true"
++            />
++            <div className="min-w-0 flex-1 truncate font-[var(--font-display)] text-[16px] font-bold text-[var(--ink-800)]">
++              {pageTitle}
++            </div>
++          </>
++        ) : null}
++      </div>
++
++      {/* 右侧 */}
++      <div className="flex items-center gap-2">
++        {typeof user?.credits === "number" ? (
++          <Link
++            href="/credits"
++            prefetch={false}
++            className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-pill)] border border-[var(--paper-300)] bg-[var(--paper-100)] hover:bg-[var(--ink-50)] transition-colors duration-200"
++            aria-label={`积分余额 ${user.credits}`}
++          >
++            <Coins className="size-3.5 text-[var(--ink-600)]" />
++            <span className="font-[var(--font-mono-v2)] text-[13px] font-bold text-[var(--ink-800)] tabular-nums">
++              {user.credits.toLocaleString()}
++            </span>
++          </Link>
++        ) : null}
++
++        {user ? (
++          <Link href="/settings" prefetch={false} aria-label="账户设置">
++            <AvatarV2 className="size-8">
++              {user.avatar ? <AvatarV2Image src={user.avatar} alt={user.name ?? "用户"} /> : null}
++              <AvatarV2Fallback>
++                {(user.name ?? "U").slice(0, 1).toUpperCase()}
++              </AvatarV2Fallback>
++            </AvatarV2>
++          </Link>
++        ) : (
++          <ButtonV2 asChild variant="primary" size="sm">
++            <Link href="/login" prefetch={false}>
++              登录
++            </Link>
++          </ButtonV2>
++        )}
++      </div>
++    </header>
++  )
++}
+diff --git a/components/v2-chrome/index.ts b/components/v2-chrome/index.ts
+new file mode 100644
+index 0000000..c372aa6
+--- /dev/null
++++ b/components/v2-chrome/index.ts
+@@ -0,0 +1,15 @@
++/**
++ * 🖌 沈翔智学 v2「墨砚」应用 chrome 总出口
++ */
++
++export { MarketingShell, type MarketingShellProps } from "./MarketingShell"
++export { MarketingHeader, type MarketingHeaderProps } from "./MarketingHeader"
++export { MarketingFooter } from "./MarketingFooter"
++export { WorkspaceShell, type WorkspaceShellProps } from "./WorkspaceShell"
++export { WorkspaceTopBar, type WorkspaceTopBarProps } from "./WorkspaceTopBar"
++export {
++  WorkspaceSidebar,
++  type WorkspaceSidebarProps,
++  type WorkspaceSidebarItem,
++  type WorkspaceSidebarSection,
++} from "./WorkspaceSidebar"
+-- 
+2.50.1
+

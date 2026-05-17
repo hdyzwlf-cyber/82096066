@@ -1,0 +1,923 @@
+From b1f9350ea345b70001a44950ae78d860aaef7510 Mon Sep 17 00:00:00 2001
+From: Kiro Agent <244629292+kiro-agent@users.noreply.github.com>
+Date: Sat, 16 May 2026 19:07:02 +0000
+Subject: [PATCH 08/12] feat(home-v2): introduce home page redesign +
+ /v2-preview route
+
+---
+ app/v2-preview/page.tsx               |  23 +++
+ components/home/v2/CapabilitiesV2.tsx | 154 ++++++++++++++++++
+ components/home/v2/FinalCTAV2.tsx     |  68 ++++++++
+ components/home/v2/HeroV2.tsx         | 226 ++++++++++++++++++++++++++
+ components/home/v2/HomePageV2.tsx     |  31 ++++
+ components/home/v2/ProcessV2.tsx      | 121 ++++++++++++++
+ components/home/v2/StatsSealsV2.tsx   |  89 ++++++++++
+ components/home/v2/TestimonialsV2.tsx | 105 ++++++++++++
+ components/home/v2/index.ts           |  22 +++
+ 9 files changed, 839 insertions(+)
+ create mode 100644 app/v2-preview/page.tsx
+ create mode 100644 components/home/v2/CapabilitiesV2.tsx
+ create mode 100644 components/home/v2/FinalCTAV2.tsx
+ create mode 100644 components/home/v2/HeroV2.tsx
+ create mode 100644 components/home/v2/HomePageV2.tsx
+ create mode 100644 components/home/v2/ProcessV2.tsx
+ create mode 100644 components/home/v2/StatsSealsV2.tsx
+ create mode 100644 components/home/v2/TestimonialsV2.tsx
+ create mode 100644 components/home/v2/index.ts
+
+diff --git a/app/v2-preview/page.tsx b/app/v2-preview/page.tsx
+new file mode 100644
+index 0000000..c01717b
+--- /dev/null
++++ b/app/v2-preview/page.tsx
+@@ -0,0 +1,23 @@
++/**
++ * 🖌 v2 设计系统预览路径
++ *
++ * 路径：/v2-preview
++ * 用途：让 reviewer 在不影响 / 老首页的前提下，直接看到 v2 整页效果。
++ * 一旦 PR8 收尾、整体上线，本路由可以并入 / 主页或删除。
++ */
++
++import type { Metadata } from "next"
++import { HomePageV2 } from "@/components/home/v2"
++
++export const metadata: Metadata = {
++  title: "v2 设计预览 — 沈翔智学",
++  description: "墨砚设计系统 · 整页预览（不影响线上 / 主页）",
++  robots: { index: false, follow: false },
++}
++
++export const dynamic = "force-static"
++export const revalidate = 300
++
++export default function V2PreviewPage() {
++  return <HomePageV2 />
++}
+diff --git a/components/home/v2/CapabilitiesV2.tsx b/components/home/v2/CapabilitiesV2.tsx
+new file mode 100644
+index 0000000..7972065
+--- /dev/null
++++ b/components/home/v2/CapabilitiesV2.tsx
+@@ -0,0 +1,154 @@
++/**
++ * 🖌 v2 首页 · 能力卡四联
++ *
++ * 4 张能力卡片，每张代表一个高频学习动作：
++ *   - 错题诊断海报  /worksheet-diagnosis
++ *   - 智能作文批改  /chat/standard
++ *   - 题目解析     /chat/quanquan-math
++ *   - 闪卡复习     /flashcards
++ *
++ * 视觉：paper card + 入场逐个渗出 + hover 朱印浮现
++ */
++
++"use client"
++
++import * as React from "react"
++import Link from "next/link"
++import {
++  ArrowRight,
++  ClipboardCheck,
++  FileText,
++  HelpCircle,
++  Layers3,
++  type LucideIcon,
++} from "lucide-react"
++import { cn } from "@/lib/utils"
++import {
++  CardV2,
++  CardV2Content,
++} from "@/components/ui/v2/card"
++import { BadgeV2 } from "@/components/ui/v2/badge"
++import { InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++interface Capability {
++  href: string
++  title: string
++  description: string
++  icon: LucideIcon
++  priceLabel: string
++  priceTone: "ink" | "seal"
++}
++
++const CAPABILITIES: Capability[] = [
++  {
++    href: "/worksheet-diagnosis",
++    title: "错题诊断海报",
++    description: "上传试卷图片，AI 归因错题并生成适合家长沟通的训练建议。",
++    icon: ClipboardCheck,
++    priceLabel: "首次免费",
++    priceTone: "seal",
++  },
++  {
++    href: "/chat/standard",
++    title: "智能作文批改",
++    description: "从结构、表达、立意到修改方向，给出逐段点评。",
++    icon: FileText,
++    priceLabel: "100 积分/次",
++    priceTone: "ink",
++  },
++  {
++    href: "/chat/quanquan-math",
++    title: "题目解析",
++    description: "拍题或输入题干，获得可复盘的分步讲解。",
++    icon: HelpCircle,
++    priceLabel: "按字数计费",
++    priceTone: "ink",
++  },
++  {
++    href: "/flashcards",
++    title: "闪卡复习",
++    description: "把知识点沉淀成复习卡片，跟踪掌握状态。",
++    icon: Layers3,
++    priceLabel: "免费",
++    priceTone: "ink",
++  },
++]
++
++export function CapabilitiesV2() {
++  return (
++    <section
++      data-slot="v2-capabilities"
++      className="bg-[var(--paper-50)]"
++    >
++      <div className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-24">
++        <div className="mb-10 max-w-2xl">
++          <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            高频学习动作
++          </p>
++          <h2 className="mt-2 font-[var(--font-display)] text-[clamp(28px,4vw,40px)] font-bold leading-[1.2] text-[var(--ink-800)]">
++            首页只保留最常用的 4 件事
++          </h2>
++          <p className="mt-3 text-[15px] leading-[1.7] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            不把所有 AI 能力一次性摊开，而是先帮学生完成最容易产生结果的动作。
++          </p>
++        </div>
++
++        <InkStagger
++          stagger={0.08}
++          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
++        >
++          {CAPABILITIES.map((c) => (
++            <InkStaggerItem key={c.href}>
++              <CapabilityCard {...c} />
++            </InkStaggerItem>
++          ))}
++        </InkStagger>
++      </div>
++    </section>
++  )
++}
++
++function CapabilityCard({ href, title, description, icon: Icon, priceLabel, priceTone }: Capability) {
++  return (
++    <Link
++      href={href}
++      prefetch={false}
++      className={cn(
++        "group block h-full outline-none",
++        "focus-visible:[box-shadow:var(--shadow-focus-ink)] rounded-[var(--radius-sharp)]"
++      )}
++    >
++      <CardV2 variant="paper" interactive className="relative h-full overflow-hidden">
++        {/* 右上价格标签 */}
++        <div className="absolute right-3 top-3 z-10">
++          <BadgeV2 variant={priceTone === "seal" ? "seal" : "ink"}>{priceLabel}</BadgeV2>
++        </div>
++
++        <CardV2Content className="flex flex-col gap-4">
++          <div className={cn(
++            "inline-flex size-10 items-center justify-center rounded-[var(--radius-soft)]",
++            "bg-[var(--ink-50)] text-[var(--ink-700)]",
++            "transition-colors duration-200",
++            "group-hover:bg-[var(--ink-700)] group-hover:text-white"
++          )}>
++            <Icon className="size-5" aria-hidden="true" />
++          </div>
++
++          <div>
++            <h3 className="font-[var(--font-display)] text-[18px] font-bold text-[var(--ink-800)]">
++              {title}
++            </h3>
++            <p className="mt-2 text-[13px] leading-[1.7] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++              {description}
++            </p>
++          </div>
++
++          <span className="mt-auto inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink-700)] font-[var(--font-sans-v2)]">
++            进入使用
++            <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
++          </span>
++        </CardV2Content>
++      </CardV2>
++    </Link>
++  )
++}
+diff --git a/components/home/v2/FinalCTAV2.tsx b/components/home/v2/FinalCTAV2.tsx
+new file mode 100644
+index 0000000..2d58efc
+--- /dev/null
++++ b/components/home/v2/FinalCTAV2.tsx
+@@ -0,0 +1,68 @@
++/**
++ * 🖌 v2 首页 · 最终 CTA
++ *
++ * 极简版本：深墨色全屏 + 一句宋体大字 + 朱印按钮
++ */
++
++import * as React from "react"
++import Link from "next/link"
++import { ArrowRight } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { InkReveal } from "@/components/motion/InkMotion"
++
++export function FinalCTAV2() {
++  return (
++    <section
++      data-slot="v2-final-cta"
++      className={cn(
++        "relative overflow-hidden",
++        "bg-[var(--ink-900)] text-[var(--paper-50)]"
++      )}
++    >
++      {/* 装饰 */}
++      <div
++        aria-hidden="true"
++        className="pointer-events-none absolute inset-0"
++        style={{
++          backgroundImage:
++            "radial-gradient(circle at 20% 50%, rgba(178, 58, 44, 0.12) 0%, transparent 40%)," +
++            "radial-gradient(circle at 90% 30%, rgba(135, 185, 140, 0.08) 0%, transparent 50%)",
++        }}
++      />
++
++      <div className="relative mx-auto w-full max-w-4xl px-4 py-20 text-center md:py-28">
++        <InkReveal as="div">
++          <h2 className="font-[var(--font-display)] text-[clamp(32px,5vw,56px)] font-black leading-[1.1] tracking-[-0.015em]">
++            今天就让 AI 看一篇
++            <br className="sm:hidden" />
++            你的作文。
++          </h2>
++
++          <p className="mt-5 text-[15px] leading-[1.7] text-[var(--paper-200)] sm:text-[17px] font-[var(--font-sans-v2)]">
++            60 秒生成可读、可改、可分享的报告。
++          </p>
++
++          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
++            <ButtonV2 asChild variant="seal" size="lg">
++              <Link href="/chat/standard" prefetch={false}>
++                立即开始批改
++                <ArrowRight className="size-4" aria-hidden="true" />
++              </Link>
++            </ButtonV2>
++            <ButtonV2
++              asChild
++              variant="ghost"
++              size="lg"
++              className="text-[var(--paper-200)] hover:bg-[var(--paper-50)]/10 hover:text-white"
++            >
++              <Link href="/pricing" prefetch={false}>
++                查看套餐
++              </Link>
++            </ButtonV2>
++          </div>
++        </InkReveal>
++      </div>
++    </section>
++  )
++}
+diff --git a/components/home/v2/HeroV2.tsx b/components/home/v2/HeroV2.tsx
+new file mode 100644
+index 0000000..da69add
+--- /dev/null
++++ b/components/home/v2/HeroV2.tsx
+@@ -0,0 +1,226 @@
++/**
++ * 🖌 沈翔智学 v2 首页 · Hero 区
++ *
++ * 叙事："上传作文 / 试卷 / 错题。看见能拿走的报告。"
++ *
++ * 桌面端布局：
++ *   ┌──────────────────────────┬──────────────┐
++ *   │  ShieldCheck 信誉徽章     │   报告示例   │
++ *   │  text-hero 标题（宋体）   │   占位卡片   │
++ *   │  正文段落                  │              │
++ *   │  [上传作文批改] [看一份示例]│             │
++ *   │  3 个 metric              │              │
++ *   └──────────────────────────┴──────────────┘
++ *
++ * 移动端：单列堆叠，右侧报告卡片 hidden
++ */
++
++import * as React from "react"
++import Link from "next/link"
++import { ArrowRight, Camera, FileText, ShieldCheck, Sparkles, PenLine } from "lucide-react"
++import { ButtonV2 } from "@/components/ui/v2/button"
++import { ScoreSeal } from "@/components/ui/v2/seal"
++import { InkReveal } from "@/components/motion/InkMotion"
++import { cn } from "@/lib/utils"
++
++const HERO_METRICS = [
++  { label: "上传材料", value: "作文 / 试卷 / 错题" },
++  { label: "AI 完整反馈", value: "批改 / 归因 / 建议" },
++  { label: "下一步行动", value: "订正 / 训练 / 复盘" },
++] as const
++
++export function HeroV2() {
++  return (
++    <section
++      data-slot="v2-hero"
++      className={cn(
++        "relative isolate overflow-hidden",
++        "bg-[var(--paper-50)]",
++        "border-b border-[var(--paper-200)]"
++      )}
++    >
++      {/* 装饰：右上角宣纸纹理 */}
++      <div
++        aria-hidden="true"
++        className="pointer-events-none absolute inset-0 -z-10"
++        style={{
++          backgroundImage:
++            "radial-gradient(circle at 80% 0%, rgba(63, 90, 66, 0.04) 0%, transparent 60%)," +
++            "radial-gradient(circle at 0% 100%, rgba(178, 58, 44, 0.03) 0%, transparent 50%)",
++        }}
++      />
++
++      <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-10 md:px-6 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] lg:gap-16 lg:py-24">
++        {/* 左侧：文字 + CTA */}
++        <InkReveal as="div" className="max-w-2xl">
++          {/* 信誉徽章 */}
++          <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-[var(--ink-200)] bg-[var(--paper-100)] px-3 py-1.5 text-[12px] font-semibold text-[var(--ink-700)] font-[var(--font-sans-v2)]">
++            <ShieldCheck className="size-3.5" aria-hidden="true" />
++            面向学生、家长、老师的 AI 学习反馈
++          </span>
++
++          {/* Hero 大标题 — 宋体 */}
++          <h1 className="mt-6 font-[var(--font-display)] text-[clamp(36px,6vw,72px)] font-black leading-[1.05] tracking-[-0.02em] text-[var(--ink-900)]">
++            上传作文。
++            <br />
++            <span className="text-[var(--ink-700)]">看见</span>
++            <span className="relative inline-block">
++              <span className="text-[var(--seal-500)]">能拿走</span>
++              {/* 朱印小印章在"能拿走"末尾右上 */}
++              <span
++                aria-hidden="true"
++                className="absolute -right-2 -top-2 size-3 rounded-full bg-[var(--seal-500)] opacity-80"
++              />
++            </span>
++            <span className="text-[var(--ink-700)]">的报告。</span>
++          </h1>
++
++          {/* 副文案 */}
++          <p className="mt-6 max-w-xl text-[15px] leading-[1.8] text-[var(--ink-600)] font-[var(--font-sans-v2)] sm:text-[17px]">
++            拍一张作文或试卷，60 秒生成可读、可改、可分享的报告。
++            <br className="hidden sm:block" />
++            孩子知道怎么改、家长能看懂进展、老师省半小时备课。
++          </p>
++
++          {/* 双 CTA */}
++          <div className="mt-8 flex flex-wrap gap-3">
++            <ButtonV2 asChild variant="primary" size="lg" className="group">
++              <Link href="/chat/standard" prefetch={false}>
++                <PenLine className="size-4" aria-hidden="true" />
++                上传作文批改
++                <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
++              </Link>
++            </ButtonV2>
++
++            <ButtonV2 asChild variant="outline" size="lg">
++              <Link href="/worksheet-diagnosis" prefetch={false}>
++                <Camera className="size-4" aria-hidden="true" />
++                拍卷诊断错题
++              </Link>
++            </ButtonV2>
++          </div>
++
++          {/* 三段 metric */}
++          <ul className="mt-10 grid gap-4 border-t border-[var(--paper-200)] pt-6 sm:grid-cols-3">
++            {HERO_METRICS.map((m) => (
++              <li key={m.label}>
++                <div className="font-[var(--font-sans-v2)] text-[12px] font-semibold uppercase tracking-wide text-[var(--ink-500)]">
++                  {m.label}
++                </div>
++                <div className="mt-1 font-[var(--font-display)] text-[15px] font-bold text-[var(--ink-800)]">
++                  {m.value}
++                </div>
++              </li>
++            ))}
++          </ul>
++        </InkReveal>
++
++        {/* 右侧：报告卡片预览 */}
++        <InkReveal
++          as="div"
++          delay={0.15}
++          className="hidden lg:block"
++        >
++          <ReportPreview />
++        </InkReveal>
++      </div>
++    </section>
++  )
++}
++
++/**
++ * 报告示例卡 — 模拟一份真实批改稿
++ * （待 PR4 真实截图替换）
++ */
++function ReportPreview() {
++  return (
++    <div className="relative">
++      {/* 主卡 */}
++      <div
++        className={cn(
++          "relative aspect-[4/5] w-full overflow-hidden",
++          "rounded-[var(--radius-card)] bg-white",
++          "shadow-[var(--shadow-modal)] border border-[var(--paper-200)]"
++        )}
++      >
++        {/* 顶部装饰 */}
++        <div className="border-b border-[var(--paper-200)] bg-[var(--paper-50)] px-5 py-4">
++          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            <FileText className="size-3.5" />
++            作文批改报告 · 已脱敏示例
++          </div>
++        </div>
++
++        {/* 报告内容 */}
++        <div className="px-6 pt-5 pb-8">
++          <h3 className="font-[var(--font-display)] text-[22px] font-black text-[var(--ink-800)]">
++            《我的妈妈》
++          </h3>
++          <p className="mt-1 text-[12px] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            五年级 · 750 字
++          </p>
++
++          {/* 评分朱印 */}
++          <div className="mt-5 flex items-center gap-4">
++            <ScoreSeal score="8.5" total="10" size={72} />
++            <div>
++              <div className="font-[var(--font-display)] text-[14px] font-bold text-[var(--ink-800)]">
++                内容真实，结构待加强
++              </div>
++              <div className="text-[12px] text-[var(--ink-500)] mt-1 font-[var(--font-sans-v2)]">
++                AI 已整理 · 6 处问题 · 3 条建议
++              </div>
++            </div>
++          </div>
++
++          {/* 模拟批改条目 */}
++          <div className="mt-6 space-y-3">
++            <PreviewRow label="原文问题" content="开头观点出现得稍晚" />
++            <PreviewRow label="AI 修改" content="先点明立意，再补一处生活细节" />
++            <PreviewRow label="训练任务" content="重写开头 + 3 句表达替换" />
++          </div>
++        </div>
++
++        {/* 底部水印 */}
++        <div className="absolute bottom-3 right-4 font-[var(--font-display)] text-[10px] text-[var(--ink-300)] tracking-widest">
++          沈翔智学
++        </div>
++      </div>
++
++      {/* 朱印悬浮装饰 */}
++      <div
++        className="absolute -right-3 -top-4 hidden lg:block"
++        aria-hidden="true"
++        style={{ transform: "rotate(8deg)" }}
++      >
++        <span
++          className={cn(
++            "inline-flex items-center justify-center size-12 rounded-sm border-2",
++            "border-[var(--seal-500)] bg-[var(--seal-50)]/80",
++            "font-[var(--font-display)] text-[10px] font-bold text-[var(--seal-500)]",
++            "shadow-[0_2px_0_var(--seal-500)]"
++          )}
++          style={{ writingMode: "vertical-rl", letterSpacing: "0.2em" }}
++        >
++          已批阅
++        </span>
++      </div>
++    </div>
++  )
++}
++
++function PreviewRow({ label, content }: { label: string; content: string }) {
++  return (
++    <div className="flex items-start gap-3 rounded-[var(--radius-soft)] bg-[var(--paper-100)] px-3 py-2.5">
++      <Sparkles className="mt-0.5 size-3 shrink-0 text-[var(--seal-500)]" aria-hidden="true" />
++      <div className="min-w-0 flex-1">
++        <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++          {label}
++        </div>
++        <div className="mt-0.5 text-[13px] leading-[1.6] text-[var(--ink-800)] font-[var(--font-sans-v2)]">
++          {content}
++        </div>
++      </div>
++    </div>
++  )
++}
+diff --git a/components/home/v2/HomePageV2.tsx b/components/home/v2/HomePageV2.tsx
+new file mode 100644
+index 0000000..ea89c9a
+--- /dev/null
++++ b/components/home/v2/HomePageV2.tsx
+@@ -0,0 +1,31 @@
++/**
++ * 🖌 v2 首页整页装配
++ *
++ * 这是新首页的"完整版面"，按 AIDA 漏斗排列：
++ *   Hero (Attention) → Stats (Trust) → Capabilities (Interest)
++ *   → Process (Desire) → Testimonials (Validation) → CTA (Action)
++ *
++ * 通过 MarketingShell 提供顶栏 + 页脚。
++ */
++
++import * as React from "react"
++import { MarketingShell } from "@/components/v2-chrome"
++import { HeroV2 } from "./HeroV2"
++import { StatsSealsV2 } from "./StatsSealsV2"
++import { CapabilitiesV2 } from "./CapabilitiesV2"
++import { ProcessV2 } from "./ProcessV2"
++import { TestimonialsV2 } from "./TestimonialsV2"
++import { FinalCTAV2 } from "./FinalCTAV2"
++
++export function HomePageV2() {
++  return (
++    <MarketingShell>
++      <HeroV2 />
++      <StatsSealsV2 />
++      <CapabilitiesV2 />
++      <ProcessV2 />
++      <TestimonialsV2 />
++      <FinalCTAV2 />
++    </MarketingShell>
++  )
++}
+diff --git a/components/home/v2/ProcessV2.tsx b/components/home/v2/ProcessV2.tsx
+new file mode 100644
+index 0000000..0cecab1
+--- /dev/null
++++ b/components/home/v2/ProcessV2.tsx
+@@ -0,0 +1,121 @@
++/**
++ * 🖌 v2 首页 · 三步学习闭环
++ *
++ * 把"上传 → AI → 复盘"画成 3 张并排卡片，中间用墨色虚线连接。
++ */
++
++import * as React from "react"
++import { Camera, CheckCircle2, Lightbulb, type LucideIcon } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { InkReveal } from "@/components/motion/InkMotion"
++
++interface Step {
++  number: string
++  icon: LucideIcon
++  title: string
++  description: string
++}
++
++const STEPS: Step[] = [
++  {
++    number: "01",
++    icon: Camera,
++    title: "上传材料",
++    description: "作文、试卷、题目或学习问题都可以作为入口。",
++  },
++  {
++    number: "02",
++    icon: CheckCircle2,
++    title: "生成反馈",
++    description: "AI 把问题、原因、修改方向和训练建议整理成清晰清单。",
++  },
++  {
++    number: "03",
++    icon: Lightbulb,
++    title: "复盘提升",
++    description: "学生按建议修改和练习，家长老师都能基于同一份反馈跟进。",
++  },
++]
++
++export function ProcessV2() {
++  return (
++    <section
++      data-slot="v2-process"
++      className={cn(
++        "border-t border-[var(--paper-200)]",
++        "bg-[var(--paper-100)]"
++      )}
++    >
++      <div className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-24">
++        <InkReveal as="div" className="mb-12 max-w-2xl">
++          <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            学习闭环
++          </p>
++          <h2 className="mt-2 font-[var(--font-display)] text-[clamp(28px,4vw,40px)] font-bold leading-[1.2] text-[var(--ink-800)]">
++            从发现问题到真正改进
++          </h2>
++          <p className="mt-3 text-[15px] leading-[1.7] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            首页不再讲复杂模型编排，只呈现学生每天能用上的路径。
++          </p>
++        </InkReveal>
++
++        {/* 三步卡片 + 桌面端连接线 */}
++        <div className="relative">
++          {/* 桌面端连接虚线 */}
++          <div
++            aria-hidden="true"
++            className="absolute left-[16.66%] right-[16.66%] top-7 hidden h-px md:block"
++            style={{
++              backgroundImage: "linear-gradient(to right, var(--paper-300) 50%, transparent 0%)",
++              backgroundSize: "8px 1px",
++              backgroundRepeat: "repeat-x",
++            }}
++          />
++
++          <ol className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
++            {STEPS.map((step, idx) => (
++              <li key={step.number} className="relative">
++                <InkReveal as="div" delay={idx * 0.1}>
++                  <StepCard {...step} />
++                </InkReveal>
++              </li>
++            ))}
++          </ol>
++        </div>
++      </div>
++    </section>
++  )
++}
++
++function StepCard({ number, icon: Icon, title, description }: Step) {
++  return (
++    <div className="flex flex-col items-start gap-4">
++      {/* 编号圆 + 图标 */}
++      <div className="flex items-center gap-3">
++        <span
++          className={cn(
++            "inline-flex size-14 items-center justify-center rounded-full",
++            "bg-[var(--ink-700)] text-white",
++            "font-[var(--font-display)] text-[18px] font-black",
++            "shadow-[0_2px_0_var(--ink-800)]"
++          )}
++          aria-hidden="true"
++        >
++          {number}
++        </span>
++        <span className="inline-flex size-10 items-center justify-center rounded-[var(--radius-soft)] bg-[var(--ink-50)] text-[var(--ink-700)]">
++          <Icon className="size-5" aria-hidden="true" />
++        </span>
++      </div>
++
++      <div>
++        <h3 className="font-[var(--font-display)] text-[20px] font-bold text-[var(--ink-800)]">
++          {title}
++        </h3>
++        <p className="mt-2 text-[14px] leading-[1.7] text-[var(--ink-500)] font-[var(--font-sans-v2)] max-w-sm">
++          {description}
++        </p>
++      </div>
++    </div>
++  )
++}
+diff --git a/components/home/v2/StatsSealsV2.tsx b/components/home/v2/StatsSealsV2.tsx
+new file mode 100644
+index 0000000..b79df00
+--- /dev/null
++++ b/components/home/v2/StatsSealsV2.tsx
+@@ -0,0 +1,89 @@
++/**
++ * 🖌 v2 首页 · Stats 朱印数据
++ *
++ * 4 枚朱印盖在米黄宣纸上：
++ *   [批改]  [上线]  [覆盖]  [响应]
++ *   10K+    2 年    K12-高中  60s
++ *
++ * 替换原 emerald 渐变背景 + 数字滚动 → 极简纸面排版
++ */
++
++import * as React from "react"
++import { cn } from "@/lib/utils"
++import { InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++const STATS = [
++  { seal: "批改", value: "10,000+", caption: "已批改作文" },
++  { seal: "上线", value: "2 年", caption: "稳定服务" },
++  { seal: "覆盖", value: "K12 - 高中", caption: "全学段适配" },
++  { seal: "响应", value: "60s", caption: "平均生成时间" },
++] as const
++
++export function StatsSealsV2() {
++  return (
++    <section
++      data-slot="v2-stats-seals"
++      className={cn("border-y border-[var(--paper-200)]", "bg-[var(--paper-100)]")}
++    >
++      <div className="mx-auto w-full max-w-7xl px-4 py-12 md:px-6 md:py-16">
++        <div className="mb-10 text-center">
++          <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            被信任的数据
++          </p>
++          <h2 className="mt-2 font-[var(--font-display)] text-[clamp(24px,3.5vw,32px)] font-bold text-[var(--ink-800)]">
++            真实学习现场，长期使用
++          </h2>
++        </div>
++
++        <InkStagger
++          stagger={0.12}
++          className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8"
++        >
++          {STATS.map((s) => (
++            <InkStaggerItem key={s.seal}>
++              <SealNumberCard seal={s.seal} value={s.value} caption={s.caption} />
++            </InkStaggerItem>
++          ))}
++        </InkStagger>
++      </div>
++    </section>
++  )
++}
++
++function SealNumberCard({
++  seal,
++  value,
++  caption,
++}: {
++  seal: string
++  value: string
++  caption: string
++}) {
++  return (
++    <div className="flex flex-col items-center text-center">
++      {/* 顶部小朱印 */}
++      <div
++        className={cn(
++          "mb-3 inline-flex size-10 items-center justify-center rounded-sm border-2",
++          "border-[var(--seal-500)] bg-[var(--seal-50)]/80",
++          "font-[var(--font-display)] text-[12px] font-bold text-[var(--seal-500)]",
++          "shadow-[0_2px_0_var(--seal-500)]"
++        )}
++        style={{ transform: "rotate(-4deg)" }}
++        aria-hidden="true"
++      >
++        {seal}
++      </div>
++
++      {/* 数字 — 等宽 */}
++      <div className="font-[var(--font-mono-v2)] text-[clamp(28px,4vw,40px)] font-bold tabular-nums text-[var(--ink-800)]">
++        {value}
++      </div>
++
++      {/* caption */}
++      <div className="mt-1 text-[13px] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++        {caption}
++      </div>
++    </div>
++  )
++}
+diff --git a/components/home/v2/TestimonialsV2.tsx b/components/home/v2/TestimonialsV2.tsx
+new file mode 100644
+index 0000000..a14b6b1
+--- /dev/null
++++ b/components/home/v2/TestimonialsV2.tsx
+@@ -0,0 +1,105 @@
++/**
++ * 🖌 v2 首页 · 用户反馈三视角
++ */
++
++import * as React from "react"
++import { Quote } from "lucide-react"
++import { cn } from "@/lib/utils"
++import { CardV2, CardV2Content } from "@/components/ui/v2/card"
++import { InkStagger, InkStaggerItem } from "@/components/motion/InkMotion"
++
++interface Testimonial {
++  id: string
++  content: string
++  author: string
++  role: string
++  initial: string
++}
++
++const TESTIMONIALS: Testimonial[] = [
++  {
++    id: "parent",
++    content:
++      "孩子以前写完作文只知道分数，现在能看到哪里要改、下一篇怎么练，家长沟通也轻松很多。",
++    author: "王女士",
++    role: "初中学生家长",
++    initial: "王",
++  },
++  {
++    id: "student",
++    content:
++      "AI 会把我的作文拆开讲，不只是说好不好，还告诉我哪些句子可以展开，修改起来有方向。",
++    author: "刘同学",
++    role: "初三学生",
++    initial: "刘",
++  },
++  {
++    id: "teacher",
++    content:
++      "错题反馈适合课后复盘，能把共性问题先整理出来，老师再针对性讲解会更省时间。",
++    author: "孙老师",
++    role: "语文教师",
++    initial: "孙",
++  },
++]
++
++export function TestimonialsV2() {
++  return (
++    <section
++      data-slot="v2-testimonials"
++      className="bg-[var(--paper-50)]"
++    >
++      <div className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-24">
++        <div className="mb-10 max-w-2xl">
++          <p className="text-[12px] font-semibold uppercase tracking-wider text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++            真实场景反馈
++          </p>
++          <h2 className="mt-2 font-[var(--font-display)] text-[clamp(28px,4vw,40px)] font-bold leading-[1.2] text-[var(--ink-800)]">
++            学生 / 家长 / 老师 三方共享同一份学习反馈
++          </h2>
++        </div>
++
++        <InkStagger
++          stagger={0.1}
++          className="grid grid-cols-1 gap-4 md:grid-cols-3"
++        >
++          {TESTIMONIALS.map((t) => (
++            <InkStaggerItem key={t.id}>
++              <TestimonialCard testimonial={t} />
++            </InkStaggerItem>
++          ))}
++        </InkStagger>
++      </div>
++    </section>
++  )
++}
++
++function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
++  return (
++    <CardV2 variant="paper" className="relative h-full overflow-hidden">
++      <CardV2Content className="flex flex-col gap-5">
++        <Quote className="size-5 text-[var(--seal-500)]" aria-hidden="true" />
++        <p className="flex-1 font-[var(--font-display)] text-[16px] leading-[1.8] text-[var(--ink-800)]">
++          &ldquo;{testimonial.content}&rdquo;
++        </p>
++        <div className="flex items-center gap-3 border-t border-[var(--paper-200)] pt-4">
++          <div className={cn(
++            "flex size-9 items-center justify-center rounded-full",
++            "bg-[var(--ink-100)] text-[var(--ink-700)]",
++            "font-[var(--font-display)] text-[14px] font-bold"
++          )}>
++            {testimonial.initial}
++          </div>
++          <div className="min-w-0 flex-1">
++            <div className="font-[var(--font-sans-v2)] text-[13px] font-bold text-[var(--ink-800)]">
++              {testimonial.author}
++            </div>
++            <div className="text-[12px] text-[var(--ink-500)] font-[var(--font-sans-v2)]">
++              {testimonial.role}
++            </div>
++          </div>
++        </div>
++      </CardV2Content>
++    </CardV2>
++  )
++}
+diff --git a/components/home/v2/index.ts b/components/home/v2/index.ts
+new file mode 100644
+index 0000000..c0cad11
+--- /dev/null
++++ b/components/home/v2/index.ts
+@@ -0,0 +1,22 @@
++/**
++ * 🖌 v2 首页板块总出口
++ *
++ * 用法：
++ *   import { HomePageV2 } from "@/components/home/v2"
++ *
++ * 推荐顺序：
++ *   <HeroV2 />
++ *   <StatsSealsV2 />
++ *   <CapabilitiesV2 />
++ *   <ProcessV2 />
++ *   <TestimonialsV2 />
++ *   <FinalCTAV2 />
++ */
++
++export { HeroV2 } from "./HeroV2"
++export { StatsSealsV2 } from "./StatsSealsV2"
++export { CapabilitiesV2 } from "./CapabilitiesV2"
++export { ProcessV2 } from "./ProcessV2"
++export { TestimonialsV2 } from "./TestimonialsV2"
++export { FinalCTAV2 } from "./FinalCTAV2"
++export { HomePageV2 } from "./HomePageV2"
+-- 
+2.50.1
+
